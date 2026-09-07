@@ -1,0 +1,4 @@
+[tool.tortoise]
+tortoise_orm = "setting.TORTOISE_ORM"
+location = "./migrations"
+src_folder = "./."
