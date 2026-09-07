@@ -5,10 +5,12 @@ from tortoise.contrib.fastapi import register_tortoise
 from setting import TORTOISE_ORM
 
 from apis.login import login_api
+from apis.sign_up import sign_up_api
 
 app = FastAPI()
 
 app.include_router(login_api,tags=["登录模块"])
+app.include_router(sign_up_api,tags=["注册模块"])
 
 register_tortoise(
     app=app,

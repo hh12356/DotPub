@@ -8,7 +8,6 @@ class LoginData(BaseModel):
     user_name:str
     user_pwd:str
 
-
 @login_api.post("/login")
 async def verify_user_info(login_data:LoginData):
     user = await UserAccount.filter(user_name=login_data.user_name,user_pwd=login_data.user_pwd)
