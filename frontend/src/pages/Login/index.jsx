@@ -1,31 +1,53 @@
-import { Button, Checkbox, Form, Input } from 'antd';
+import { Button, Form, Input, message } from 'antd';
 import './index.scss'
+import { useEffect, useState } from 'react';
+import { loginAPI } from '@/apis/login';
 
 const Login = ()=>{
+    const [userName,setUserName] = useState("")
+    const [userPassword,setUserPassword] = useState("")
+
+    const userNameChange = (value)=>{
+        setUserName(value)
+    }
+    const userPasswordChange = (value)=>{
+        setUserPassword(value)
+    }
+
+    const submit = async ()=>{
+        const res = await loginAPI({
+            "user_name":userName,
+            "user_pwd":userPassword
+        })
+        const data = res.data
+        console.log(data);
+        if(res.data.code=="200"){
+            message.success(data.msg)
+        }
+        else{
+            message.error(data.msg)
+        }
+    }
+
     return (
         <div id='container'>
-            <Form
-                onFinish
-                onFinishFailed
-            >
+            <Form>
                 <Form.Item
-                label="用户名"
                 name="username"
                 rules={[{ required: true, message: 'Please input your username!' }]}
                 >
-                <Input />
+                <Input variant='filled' placeholder='用户名' value={userName} onChange={(e)=>userNameChange(e.target.value)}/>
                 </Form.Item>
 
                 <Form.Item
-                label="密码"
                 name="password"
                 rules={[{ required: true, message: 'Please input your password!' }]}
                 >
-                <Input.Password />
+                <Input.Password  variant='filled' placeholder='密码' value={userPassword} onChange={(e)=>userPasswordChange(e.target.value)}/>
                 </Form.Item>
 
-                <Form.Item label={null}>
-                <Button type="primary" htmlType="submit">
+                <Form.Item>
+                <Button type="primary" htmlType="submit" onClick={submit}>
                     提交
                 </Button>
                 </Form.Item>
