@@ -1,24 +1,17 @@
 import { Button, Form, Input, message } from 'antd';
 import './index.scss'
 import { useEffect, useState } from 'react';
-import { loginAPI } from '@/apis/login';
 import { useNavigate } from 'react-router-dom';
+import { fetchLogin } from '@/store/modules/user';
+import { useDispatch } from 'react-redux';
 
 const Login = ()=>{
-    const [userName,setUserName] = useState("")
-    const [userPwd,setUserPwd] = useState("")
 
-    const userNameChange = (value)=>{
-        setUserName(value)
-    }
-    const userPwdChange = (value)=>{
-        setUserPwd(value)
-    }
-
+    const dispatch = useDispatch()
     const onFinish = async (values)=>{
         try{
-            const res = await loginAPI(values)
-            message.success(res.msg)
+            await dispatch(fetchLogin(values))
+            message.success('登录成功')
         }
         catch(e){
             message.error(e.response?.data?.detail?.msg||'请求失败，请稍后重试')
@@ -40,14 +33,14 @@ const Login = ()=>{
                 name="user_name"
                 rules={[{ required: true, message: '请输入用户名' }]}
                 >
-                <Input variant='filled' placeholder='用户名' value={userName} onChange={(e)=>userNameChange(e.target.value)}/>
+                <Input variant='filled' placeholder='用户名'/>
                 </Form.Item>
 
                 <Form.Item
                 name="user_pwd"
                 rules={[{ required: true, message: '请输入密码' }]}
                 >
-                <Input.Password  variant='filled' placeholder='密码' value={userPwd} onChange={(e)=>userPwdChange(e.target.value)}/>
+                <Input.Password  variant='filled' placeholder='密码'/>
                 </Form.Item>
 
                 <Form.Item>

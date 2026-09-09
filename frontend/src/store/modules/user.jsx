@@ -1,4 +1,5 @@
 import { loginAPI } from "@/apis/login";
+import { signupAPI } from "@/apis/signup";
 import { createSlice } from "@reduxjs/toolkit";
 
 const userStore = createSlice({
@@ -28,11 +29,18 @@ const {setToken,setUserInfo,clearUserInfo} = userStore.actions
 const fetchLogin = (userData)=>{
     return async (dispatch)=>{
         const res = await loginAPI(userData)
-        dispatch(setToken(res.data.data.user_id))
+        dispatch(setToken(res.data.user_id))
     }
 }
 
-export {fetchLogin}
+const fetchSignup = (userData)=>{
+    return async (dispatch)=>{
+        const res = await signupAPI(userData)
+        dispatch(setToken(res.data.user_id))
+    }
+}
+
+export {fetchLogin,fetchSignup}
 
 const userReducer = userStore.reducer
 export default userReducer

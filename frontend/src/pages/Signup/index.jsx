@@ -1,6 +1,7 @@
-import { signupAPI } from '@/apis/signup';
 import { Button, Form, Input, message } from 'antd';
+import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import {fetchSignup} from "@/store/modules/user"
 
 const Signup = ()=>{
     const [form] = Form.useForm()
@@ -10,10 +11,11 @@ const Signup = ()=>{
         navigate('/login')
     }
 
+    const dispatch = useDispatch()
     const onFinish = async (values)=>{
         try{
-            const res = await signupAPI(values)
-            message.success(res.msg)
+            await dispatch(fetchSignup(values))
+            message.success("注册成功")
         }
         catch(e){
             message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
