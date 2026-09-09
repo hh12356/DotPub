@@ -18,7 +18,12 @@ const Login = ()=>{
     const onFinish = async (values)=>{
         const res = await loginAPI(values)
         const data = res.data
-        message.error(data.msg)
+        if (data.code===200){
+            message.success(data.msg)
+        }
+        else{
+            message.error(data.msg)
+        }
     }
 
     const navigate = useNavigate()
