@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
 from models.user import *
 
@@ -29,13 +29,17 @@ async def verify_user_info(sign_up_data:SignUpData):
                     "user_name": user.user_name
                 }
             }
-        return {
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code":400,
+                "msg":"该用户名已被占用"
+            }
+        )
+    raise HTTPException(
+        status_code=400,
+        detail={
             "code": 400,
-            "msg": "该用户名已被占用",
-            "data": None
+            "msg": "该手机号已注册"
         }
-    return {
-        "code":400,
-        "msg":"该手机号已注册",
-        "data":None
-    }
+    )

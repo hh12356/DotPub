@@ -11,13 +11,12 @@ const Signup = ()=>{
     }
 
     const onFinish = async (values)=>{
-        const res = await signupAPI(values)
-        const data = res.data
-        if (data.code===200){
-            message.success(data.msg)
+        try{
+            const res = await signupAPI(values)
+            message.success(res.msg)
         }
-        else{
-            message.error(data.msg)
+        catch(e){
+            message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
         }
     }
 

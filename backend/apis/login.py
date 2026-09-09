@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel
 from models.user import *
 
@@ -13,11 +13,12 @@ async def verify_user_info(login_data:LoginData):
     print(login_data)
     user = await UserAccount.filter(user_name=login_data.user_name,user_pwd=login_data.user_pwd)
     if not user :
-        return{
-            "code":400,
-            "msg":"用户名或密码错误",
-            "data":None
-        }
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "code":"BAD_CREDENTIALS",
+                "msg":"用户名或密码错误"}
+        )
     return {
         "code":200,
         "msg":"登录成功",
