@@ -16,6 +16,7 @@ const Signup = ()=>{
         try{
             await dispatch(fetchSignup(values))
             message.success("注册成功")
+            navigate('/')
         }
         catch(e){
             message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")

@@ -12,6 +12,7 @@ const Login = ()=>{
         try{
             await dispatch(fetchLogin(values))
             message.success('登录成功')
+            navigate('/')
         }
         catch(e){
             message.error(e.response?.data?.detail?.msg||'请求失败，请稍后重试')

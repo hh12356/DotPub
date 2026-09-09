@@ -1,11 +1,12 @@
 import { loginAPI } from "@/apis/login";
 import { signupAPI } from "@/apis/signup";
 import { createSlice } from "@reduxjs/toolkit";
+import { setToken as _setToken, getToken } from "@/utils/token"
 
 const userStore = createSlice({
     name:'user',
     initialState:{
-        token:'',
+        token:getToken()||'',
         userInfo:{}
     },
     //同步修改方法
@@ -30,6 +31,7 @@ const fetchLogin = (userData)=>{
     return async (dispatch)=>{
         const res = await loginAPI(userData)
         dispatch(setToken(res.data.user_id))
+        _setToken(res.data.user_id)
     }
 }
 
@@ -37,6 +39,7 @@ const fetchSignup = (userData)=>{
     return async (dispatch)=>{
         const res = await signupAPI(userData)
         dispatch(setToken(res.data.user_id))
+        _setToken(res.data.user_id)
     }
 }
 
