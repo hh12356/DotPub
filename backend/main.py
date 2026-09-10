@@ -3,7 +3,7 @@ import uvicorn
 from fastapi.middleware.cors import CORSMiddleware
 
 from tortoise.contrib.fastapi import register_tortoise
-from setting import TORTOISE_ORM
+from core.setting import TORTOISE_ORM
 
 from apis.login import login_api
 from apis.sign_up import sign_up_api

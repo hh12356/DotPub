@@ -1,5 +1,5 @@
 //路由配置
-import Home from "@/pages/Home"
+import Layout from "@/pages/Layout"
 import Login from "../pages/Login"
 import Signup from "../pages/Signup"
 import {createBrowserRouter} from 'react-router-dom'
@@ -8,7 +8,7 @@ import {createBrowserRouter} from 'react-router-dom'
 const router = createBrowserRouter([
     {
         path:'/',
-        element:<Home/>
+        element:<Layout/>
     },
     {
         path:'/login',

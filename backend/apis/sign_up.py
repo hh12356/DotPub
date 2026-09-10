@@ -1,5 +1,7 @@
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
+
+from core.security import get_token
 from models.user import *
 
 sign_up_api = APIRouter()
@@ -26,7 +28,8 @@ async def verify_user_info(sign_up_data:SignUpData):
                 "msg": "注册成功",
                 "data": {
                     "user_id": user.user_id,
-                    "user_name": user.user_name
+                    "user_name": user.user_name,
+                    "token":get_token({"user_id": user.user_id})
                 }
             }
         raise HTTPException(

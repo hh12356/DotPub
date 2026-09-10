@@ -1,5 +1,7 @@
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel
+
+from core.security import get_token
 from models.user import *
 
 login_api = APIRouter()
@@ -17,13 +19,15 @@ async def verify_user_info(login_data:LoginData):
             status_code=400,
             detail={
                 "code":"BAD_CREDENTIALS",
-                "msg":"用户名或密码错误"}
+                "msg":"用户名或密码错误"
+            }
         )
     return {
         "code":200,
         "msg":"登录成功",
         "data":{
             "user_id":user[0].user_id,
-            "user_name":user[0].user_name
+            "user_name":user[0].user_name,
+            "token":get_token({"user_id":user[0].user_id})
         }
     }
