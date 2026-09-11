@@ -51,6 +51,7 @@ const Layout = () => {
       label: 'Write',
       key: 'write',
       icon: <EditOutlined />,
+      onclick:()=>navigate('/write')
       // disabled: true,
     },
     {

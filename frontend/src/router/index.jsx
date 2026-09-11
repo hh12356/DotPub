@@ -2,6 +2,7 @@
 import Layout from "@/pages/Layout"
 import Login from "../pages/Login"
 import Signup from "../pages/Signup"
+import Write from "@/pages/Write"
 import { Greatest,Latest,Hottest } from '@/pages/Home'
 import {createBrowserRouter} from 'react-router-dom'
 
@@ -26,6 +27,10 @@ const router = createBrowserRouter([
             {
                 path:'/home/greatest',
                 element:<Greatest/>
+            },
+            {
+                path:'/write',
+                element:<Write/>
             },
         ]
     },
