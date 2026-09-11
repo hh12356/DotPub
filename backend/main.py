@@ -19,7 +19,9 @@ app.include_router(article_api,tags=["文章模块"])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 register_tortoise(

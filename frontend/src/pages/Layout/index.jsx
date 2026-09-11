@@ -10,6 +10,7 @@ const Layout = () => {
     hottest: '/home/hottest',
     latest: '/home/latest',
     greatest: '/home/greatest',
+    write:'/write'
   }
   const navigate = useNavigate()
   const onClick = e => {
@@ -50,8 +51,7 @@ const Layout = () => {
     {
       label: 'Write',
       key: 'write',
-      icon: <EditOutlined />,
-      onclick:()=>navigate('/write')
+      icon: <EditOutlined />
       // disabled: true,
     },
     {
