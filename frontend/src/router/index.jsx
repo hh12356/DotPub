@@ -2,13 +2,32 @@
 import Layout from "@/pages/Layout"
 import Login from "../pages/Login"
 import Signup from "../pages/Signup"
+import { Greatest,Latest,Hottest } from '@/pages/Home'
 import {createBrowserRouter} from 'react-router-dom'
 
 //配置路由实例
 const router = createBrowserRouter([
     {
         path:'/',
-        element:<Layout/>
+        element:<Layout/>,
+        children:[
+            {
+                path:'/',
+                element:<Hottest/>
+            },
+            {
+                path:'/home/hottest',
+                element:<Hottest/>
+            },
+            {
+                path:'/home/latest',
+                element:<Latest/>
+            },
+            {
+                path:'/home/greatest',
+                element:<Greatest/>
+            },
+        ]
     },
     {
         path:'/login',

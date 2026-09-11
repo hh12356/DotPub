@@ -2,7 +2,7 @@ import { loginAPI } from "@/apis/login";
 import { signupAPI } from "@/apis/signup";
 import { createSlice } from "@reduxjs/toolkit";
 import { setToken as _setToken, getToken } from "@/utils/token"
-import { setUserName as _setUserName,getUserName } from "@/utils/userInfo"
+import { setUserName as _setUserName,getUserName } from "@/utils/userName"
 
 const userStore = createSlice({
     name:'user',
