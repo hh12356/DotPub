@@ -29,3 +29,22 @@ async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depen
         "data": article
     }
 
+#按时间顺序获取文章
+@article_api.get("/article")
+async def get_all_article():
+    articles = await Article.all().select_related("art_author")
+    #Queryset : [Student(),Student(),Student(),...]
+
+    return {
+        "code": 200,
+        "msg": "获取成功",
+        "data": [
+            {**dict(a), "art_author": a.art_author.user_name}
+            for a in articles
+        ]
+    }
+
+
+
+
+

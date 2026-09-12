@@ -27,7 +27,7 @@ const Layout = () => {
   //点击Home
   const onTitleClick = ()=>{
     setCurrent("hottest")
-    navigate(routeMap['hottest'])
+    navigate('/')
   }
 
   const items = [

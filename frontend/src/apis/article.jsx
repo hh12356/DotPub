@@ -8,3 +8,11 @@ export function ArtSubmitAPI(ArtData){
         data:ArtData
     })
 }
+
+//获取所有文章请求
+export function ArtGetAllAPI(){
+    return request({
+        url:'/article',
+        method:'GET'
+    })
+}
