@@ -5,6 +5,7 @@ import Signup from "../pages/Signup"
 import Write from "@/pages/Write"
 import { Greatest,Latest,Hottest } from '@/pages/Home'
 import {createBrowserRouter} from 'react-router-dom'
+import Article from "@/pages/Article"
 
 //配置路由实例
 const router = createBrowserRouter([
@@ -31,6 +32,11 @@ const router = createBrowserRouter([
             {
                 path:'/write',
                 element:<Write/>
+            },
+            {
+                //使用useParams读取id，拿到的永远是字符串，用Number()转换
+                path:'/article/:id',
+                element:<Article/>
             },
         ]
     },

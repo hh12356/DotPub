@@ -16,3 +16,11 @@ export function ArtGetAllAPI(){
         method:'GET'
     })
 }
+
+//获取对应id文章请求
+export function ArtGetAPI(id){
+    return request({
+        url:`/article/${id}`,
+        method:'GET'
+    })
+}
