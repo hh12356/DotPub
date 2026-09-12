@@ -56,11 +56,37 @@
             color: #1677ff;
         }
 
+        // 等宽字体用系统自带的，不引 webfont：为几行代码加载几十 KB 不划算
+        pre,
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+        }
+
+        // 行内的 `xxx`，用浅底色跟块级代码区分开
+        code {
+            padding: 1px 5px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            background: rgba(0, 0, 0, 0.05);
+        }
+
         pre {
             margin: 0 0 1.2em;
             padding: 12px 16px;
             overflow-x: auto;
             border-radius: 6px;
+            background: #f6f7f9;
+            // 长行靠横向滚动，不要软换行——换行会把代码的缩进结构毁掉
+            white-space: pre;
+            font-size: 14px;
+            line-height: 1.6;
+
+            // pre 里的 code 不叠第二层底色和内边距，字号跟着 pre 走
+            code {
+                padding: 0;
+                font-size: inherit;
+                background: none;
+            }
         }
     }
 }
