@@ -13,5 +13,4 @@ class Article(Model):
         description="文章作者id"
     )
 
-    #多对多:喜欢，收藏，评论
 

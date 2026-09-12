@@ -5,8 +5,10 @@ import nh3
 from fastapi import APIRouter,HTTPException
 from fastapi.params import Depends
 from pydantic import BaseModel
+from tortoise.exceptions import IntegrityError
 
 from models.article import *
+from models.interaction import *
 
 article_api = APIRouter()
 
@@ -82,6 +84,7 @@ async def get_all_article():
         ]
     }
 
+#获取对应id文章
 @article_api.get("/article/{art_id}")
 async def get_article(art_id):
     article = await Article.get(art_id=art_id).select_related("art_author")
@@ -92,7 +95,23 @@ async def get_article(art_id):
         "data": {**dict(article), "art_author": article.art_author.user_name}
     }
 
+#点赞
+@article_api.get("/like/{art_id}")
+async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
+    user_id=token_data["user_id"]
+    try:
+        await ArticleLike(user_id=user_id,art_id=art_id)
+        return {"code": 200, "msg": "点赞成功"}
+    except IntegrityError:
+    # 已经赞过了（或者并发撞上了）→ 幂等返回成功，不是错误
+        return {"code": 200, "msg": "已经赞过了"}
 
+#取消点赞
+@article_api.delete("/like/{art_id}")
+async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
+    user_id=token_data["user_id"]
+    await ArticleLike(user_id=user_id,art_id=art_id).delete()
+    return {"code": 200, "msg": "取消点赞成功","like":False}
 
 
 

@@ -1,5 +1,6 @@
 import { ArtGetAPI } from '@/apis/article';
-import { Typography } from 'antd';
+import { LikeOutlined, StarOutlined } from '@ant-design/icons';
+import { Button, Typography } from 'antd';
 import DOMPurify from 'dompurify';
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
@@ -46,6 +47,16 @@ const Article = () => {
                     __html: DOMPurify.sanitize(article.art_content || ''),
                 }}
             />
+
+            {/*
+              点赞/收藏，功能待接。
+              接的时候：图标换成受状态控制的——已赞 <LikeFilled />、已收藏 <StarFilled />，
+              没点过才用 Outlined，别再单独加一套图标。
+            */}
+            <div className="article-actions">
+                <Button icon={<LikeOutlined />}>点赞</Button>
+                <Button icon={<StarOutlined />}>收藏</Button>
+            </div>
         </article>
     );
 };

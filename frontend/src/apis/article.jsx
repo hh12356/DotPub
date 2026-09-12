@@ -24,3 +24,19 @@ export function ArtGetAPI(id){
         method:'GET'
     })
 }
+
+//点赞文章
+export function ArtLikeAPI(id){
+    return request({
+        url:`/like/${id}`,
+        method:'GET'
+    })
+}
+
+//取消点赞
+export function ArtUnlikeAPI(id){
+    return request({
+        url:`/like/${id}`,
+        method:'DELETE'
+    })
+}
