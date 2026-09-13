@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  HomeOutlined, EditOutlined, MenuOutlined,
+  HomeOutlined, EditOutlined, MenuOutlined, SearchOutlined,
   FireOutlined, ClockCircleOutlined, TrophyOutlined,
   UserOutlined, LogoutOutlined,
 } from '@ant-design/icons';
@@ -19,7 +19,8 @@ const Layout = () => {
     write:'/write',
     login:'/login',
     profile:'/profile',
-    exit:'/'
+    exit:'/',
+    search:'/search'
   }
   const navigate = useNavigate()
   const onClick = e => {
@@ -73,8 +74,7 @@ const Layout = () => {
     {
       label: 'Search',
       key: 'search',
-      icon: <MenuOutlined />,
-      disabled: true,
+      icon: <SearchOutlined />,
     },
     {
       label: 'Notifications',

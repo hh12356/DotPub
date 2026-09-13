@@ -57,3 +57,11 @@ export function ArtUnStarAPI(id){
         method:'DELETE'
     })
 }
+
+//取消收藏
+export function ArtSrchAPI(q){
+    return request({
+        url:`/search/${q}`,
+        method:'GET'
+    })
+}

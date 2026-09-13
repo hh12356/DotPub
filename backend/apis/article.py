@@ -133,6 +133,46 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
         }
     }
 
+#搜索文章
+@article_api.get("/search/{value}")
+async def search_article(value:str,user:Annotated[dict | None , Depends(optional_user)]):
+    articles = await (Article.filter(
+        art_title__icontains=value
+    ).annotate(
+        like_count=Count("like_records",distinct=True),
+        star_count=Count("star_records",distinct=True)
+    ).select_related("art_author"))
+    #Queryset : [Student(),Student(),Student(),...]
+
+    #获取当前用户点赞收藏信息
+    liked_ids, starred_ids = set(), set()
+    if user and articles:
+        art_ids = [a.art_id for a in articles]
+        liked_ids = set(await ArticleLike.filter(
+            user_id=user["user_id"], art_id__in=art_ids
+        ).values_list("art_id", flat=True))
+        starred_ids = set(await ArticleStar.filter(
+            user_id=user["user_id"], art_id__in=art_ids
+        ).values_list("art_id", flat=True))
+
+    return {
+        "code": 200,
+        "msg": "搜索成功",
+        "data": [
+            {
+                **dict(a),
+                "art_author": a.art_author.user_name,
+                "like_count": a.like_count,
+                "star_count": a.star_count,
+                "is_liked": a.art_id in liked_ids,
+                "is_starred": a.art_id in starred_ids,
+            }
+            for a in articles
+        ]
+    }
+
+
+
 #点赞
 @article_api.get("/like/{art_id}")
 async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):

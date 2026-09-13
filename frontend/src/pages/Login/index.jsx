@@ -26,7 +26,8 @@ const Login = ()=>{
 
     return (
         <div id='container'>
-            <Form 
+            <h1>DotPub</h1>
+            <Form
             validateTrigger={'onBlur'}
             onFinish={(values)=>onFinish(values)}
             >

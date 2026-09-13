@@ -48,7 +48,7 @@ const Write = () => {
                     name="art_title"
                     rules={[{ required: !notLogin, message: '请输入标题' }]}
                 >
-                    <Input variant="filled" placeholder={!notLogin&&'标题'} disabled={notLogin}/>
+                    <Input variant="filled" placeholder={notLogin?"未登录":'标题'} disabled={notLogin}/>
                 </Form.Item>
 
                 <Form.Item name="art_content" className="editor-item">

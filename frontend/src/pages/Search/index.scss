@@ -1,0 +1,23 @@
+#search{
+    padding: 24px 0;
+
+    //宽度加在外层 div 上，别去动 .ant-input-search:
+    //它内部是 Space.Compact（flex 行），改 display 会把按钮挤到下一行
+    .search-bar{
+        width: 85vw;
+        margin: 0 auto 24px;
+    }
+
+    //antd 把搜索按钮的宽度锁成了高度（large 下 40px 正方形，
+    //见 antd/es/input/style/search.js 的 btn-icon-only 规则），这里放宽
+    .ant-input-search-btn{
+        flex: none;
+        width: 66px;
+    }
+
+    //85vw 和 ArticleCard 对齐，结果换进来时不会跳版
+    .ant-card{
+        width: 85vw;
+        margin: 0 auto 16px;
+    }
+}
