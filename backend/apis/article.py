@@ -2,7 +2,7 @@ from typing import Annotated
 
 from tortoise.functions import Count
 
-from core.security import verify_token
+from core.security import verify_token,optional_user
 
 import nh3
 from fastapi import APIRouter,HTTPException
@@ -74,12 +74,23 @@ async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depen
 
 #获取所有文章
 @article_api.get("/article")
-async def get_all_article():
+async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
     articles = await Article.annotate(
         like_count=Count("like_records",distinct=True),
         star_count=Count("star_records",distinct=True)
     ).select_related("art_author")
     #Queryset : [Student(),Student(),Student(),...]
+
+    #获取当前用户点赞收藏信息
+    liked_ids, starred_ids = set(), set()
+    if user and articles:
+        art_ids = [a.art_id for a in articles]
+        liked_ids = set(await ArticleLike.filter(
+            user_id=user["user_id"], art_id__in=art_ids
+        ).values_list("art_id", flat=True))
+        starred_ids = set(await ArticleStar.filter(
+            user_id=user["user_id"], art_id__in=art_ids
+        ).values_list("art_id", flat=True))
 
     return {
         "code": 200,
@@ -88,8 +99,10 @@ async def get_all_article():
             {
                 **dict(a),
                 "art_author": a.art_author.user_name,
-                "like": a.like_count,
-                "star": a.star_count,
+                "like_count": a.like_count,
+                "star_count": a.star_count,
+                "is_liked": a.art_id in liked_ids,
+                "is_starred": a.art_id in starred_ids,
             }
             for a in articles
         ]
@@ -97,15 +110,27 @@ async def get_all_article():
 
 #获取对应id文章
 @article_api.get("/article/{art_id}")
-async def get_article(art_id):
+async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_user)]):
     article = await Article.get(art_id=art_id).select_related("art_author")
-    like = await ArticleLike.filter(art_id=art_id).count()
-    star = await ArticleStar.filter(art_id=art_id).count()
+    like_count = await ArticleLike.filter(art_id=art_id).count()
+    star_count = await ArticleStar.filter(art_id=art_id).count()
+
+    is_liked = is_starred = False
+    if user:
+        is_liked = await ArticleLike.filter(user_id=user["user_id"], art_id=art_id).exists()
+        is_starred = await ArticleStar.filter(user_id=user["user_id"], art_id=art_id).exists()
 
     return {
         "code": 200,
         "msg": "获取成功",
-        "data": {**dict(article), "art_author": article.art_author.user_name,"like":like,"star":star}
+        "data": {
+            **dict(article),
+            "art_author": article.art_author.user_name,
+            "like_count":like_count,
+            "star_count":star_count,
+            "is_liked":is_liked,
+            "is_starred":is_starred
+        }
     }
 
 #点赞
@@ -123,8 +148,8 @@ async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
 @article_api.delete("/like/{art_id}")
 async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id=token_data["user_id"]
-    await ArticleLike(user_id=user_id,art_id=art_id).delete()
-    return {"code": 200, "msg": "取消点赞成功","like":False}
+    await ArticleLike.filter(user_id=user_id,art_id=art_id).delete()
+    return {"code": 200, "msg": "取消点赞成功"}
 
 
 #收藏
@@ -141,6 +166,6 @@ async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
 @article_api.delete("/star/{art_id}")
 async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id=token_data["user_id"]
-    await ArticleStar(user_id=user_id,art_id=art_id).delete()
+    await ArticleStar.filter(user_id=user_id,art_id=art_id).delete()
     return {"code": 200, "msg": "取消收藏成功","like":False}
 

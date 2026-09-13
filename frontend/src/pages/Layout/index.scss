@@ -1,0 +1,32 @@
+// antd 对 type:'group' 里的条目额外加了起始内边距：
+//   .ant-menu .ant-menu-item-group .ant-menu-item-group-list .ant-menu-item { padding-inline: 28px 16px }
+//（28px = --ant-font-size 14px * 2，普通项是 16px），所以 Explore / User
+// 下面的条目整体多缩进 12px。这里压回和普通项一致。
+//
+// 两个坑，都踩过了：
+//
+// 1. horizontal 模式的子菜单渲染在 portal 里（挂在 body 下），不是 Menu 的
+//    DOM 后代，所以 #layout-menu .ant-menu-item 这种靠父级的选择器选不中，
+//    必须从 .ant-menu-submenu-popup 这层起选。
+//
+// 2. antd 那条规则是 4 个 class（.ant-menu + .ant-menu-item-group +
+//    .ant-menu-item-group-list + .ant-menu-item）。antd 的 :where() 只包住
+//    哈希那层前缀，不算特异性，所以我们得凑够 5 个 class 才压得过它。
+//    少一个 class 就静默失效——不报错，只是没效果。
+.ant-menu-submenu-popup .ant-menu .ant-menu-item-group .ant-menu-item-group-list {
+    .ant-menu-item,
+    .ant-menu-submenu-title {
+        padding-inline-start: 12px;
+    }
+}
+
+// 下拉面板被写死了 min-width: var(--ant-menu-dropdown-width)（默认 160px），
+// 而 user 菜单里只有 Profile / Exit 两项，内容实测约 105px，右边就空出一大截。
+// 这里收到 128px：够装下内容，又留二十来px 的呼吸感。
+// （试过 auto，紧贴内容边缘反而显得挤。）
+//
+// 同样要凑够 class：对方是 .ant-menu-submenu-popup + .ant-menu-vertical
+// + .ant-menu-sub 共 3 个，这里 4 个。数字想再松/紧一点就调这个 px。
+.ant-menu-submenu-popup .ant-menu.ant-menu-vertical.ant-menu-sub {
+    min-width: 128px;
+}

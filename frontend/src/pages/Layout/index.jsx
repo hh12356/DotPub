@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { HomeOutlined,EditOutlined,MenuOutlined } from '@ant-design/icons';
+import {
+  HomeOutlined, EditOutlined, MenuOutlined,
+  FireOutlined, ClockCircleOutlined, TrophyOutlined,
+  UserOutlined, LogoutOutlined,
+} from '@ant-design/icons';
 import { Menu } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { getUserName } from '@/utils/userName';
+import { getUserName, removeUserName } from '@/utils/userName';
+import './index.scss';
+import { removeToken } from '@/utils/token';
 
 const Layout = () => {
   const [current, setCurrent] = useState('mail');
@@ -10,12 +16,20 @@ const Layout = () => {
     hottest: '/home/hottest',
     latest: '/home/latest',
     greatest: '/home/greatest',
-    write:'/write'
+    write:'/write',
+    login:'/login',
+    profile:'/profile',
+    exit:'/'
   }
   const navigate = useNavigate()
   const onClick = e => {
     // console.log('click ', e);
     setCurrent(e.key);
+    //逻辑
+    if(e.key==='exit'){
+      removeToken()
+      removeUserName()
+    }
     navigate(routeMap[e.key])
   };
 
@@ -30,6 +44,8 @@ const Layout = () => {
     navigate('/')
   }
 
+  const userName = getUserName()
+
   const items = [
     {
       label:'Home',
@@ -41,9 +57,9 @@ const Layout = () => {
           type: 'group',
           label: 'Explore',
           children: [
-            { label: 'Hottest', key: 'hottest' },
-            { label: 'Latest', key: 'latest' },
-            { label: 'Greatest', key: 'greatest' },
+            { label: 'Hottest', key: 'hottest', icon: <FireOutlined /> },
+            { label: 'Latest', key: 'latest', icon: <ClockCircleOutlined /> },
+            { label: 'Greatest', key: 'greatest', icon: <TrophyOutlined /> },
           ],
         }
       ],
@@ -67,19 +83,21 @@ const Layout = () => {
       disabled: true,
     },
     {
-      label: getUserName()||"未登录",
-      key: 'profile',
+      label: userName||"登录",
+      key: 'login',
       style: { marginLeft: 'auto', marginRight: 16 },
-      children: [
-        {
-          type: 'group',
-          label: 'Item 1',
-          children: [
-            { label: 'Option 1', key: 'setting:5' },
-            { label: 'Option 2', key: 'setting:6' },
-          ],
-        },
-      ],
+      ...(userName&&{
+        children: [
+          {
+            type: 'group',
+            label: 'User',
+            children: [
+              { label: 'Profile', key: 'profile', icon: <UserOutlined /> },
+              { label: 'Exit', key: 'exit', icon: <LogoutOutlined /> },
+            ],
+          },
+        ],
+      })
     }
   ];
 

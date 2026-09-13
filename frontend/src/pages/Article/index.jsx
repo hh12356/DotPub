@@ -1,8 +1,8 @@
-import { ArtGetAPI } from '@/apis/article';
-import { LikeOutlined, StarOutlined } from '@ant-design/icons';
-import { Button, Typography } from 'antd';
+import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI } from '@/apis/article';
+import { LikeOutlined, StarOutlined,LikeFilled,StarFilled } from '@ant-design/icons';
+import { Button, message, Typography } from 'antd';
 import DOMPurify from 'dompurify';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import 'react-quill-new/dist/quill.core.css';
 import './index.scss';
@@ -15,13 +15,48 @@ const Article = () => {
     const art_id = Number(params.id);
     const [article, setArticle] = useState({});
 
+    const fetchArticle =useCallback(async () => {
+        const res = await ArtGetAPI(art_id);
+        setArticle(res.data);
+    },[art_id]) 
+
     useEffect(() => {
-        const fetchArticle = async () => {
-            const res = await ArtGetAPI(art_id);
-            setArticle(res.data);
-        };
         fetchArticle();
-    }, [art_id]);
+    }, [fetchArticle]);
+
+    //点赞收藏
+    const OnClickLike = async ()=>{
+        try{
+            if(!article.is_liked){
+                await ArtLikeAPI(art_id)
+            }
+            else{
+                await ArtUnlikeAPI(art_id)
+            }
+            await fetchArticle()
+        }
+        catch(e){
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+    const OnClickStar = async ()=>{
+        try{
+            if(!article.is_starred){
+                await ArtStarAPI(art_id)
+            }
+            else{
+                await ArtUnStarAPI(art_id)
+            }
+            await fetchArticle()
+        }
+        catch(e){
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
 
     return (
         <article id="article-page">
@@ -35,11 +70,7 @@ const Article = () => {
 
             {/*
               带 ql-editor 是为了复用 Quill 的正文样式（列表序号、对齐、字号）。
-
-              后端入库前已经用 nh3 清洗过一遍，这里再洗一次是纵深防御：
-              1. 库里已有的老数据是清洗上线之前存的，脏的还在里面，后端那层救不了
-              2. 万一将来多了一条写入路径忘了清洗，这层还能兜住
-              3. 别指望它替代后端——攻击者根本不走这个页面
+              后端入库前已经用 nh3 清洗过一遍，这里再洗一次是纵深防御
             */}
             <div
                 className="article-content ql-editor"
@@ -48,14 +79,9 @@ const Article = () => {
                 }}
             />
 
-            {/*
-              点赞/收藏，功能待接。
-              接的时候：图标换成受状态控制的——已赞 <LikeFilled />、已收藏 <StarFilled />，
-              没点过才用 Outlined，别再单独加一套图标。
-            */}
             <div className="article-actions">
-                <Button icon={<LikeOutlined />}>点赞 {article.like ?? 0}</Button>
-                <Button icon={<StarOutlined />}>收藏 {article.star ?? 0}</Button>
+                <Button icon={article.is_liked?<LikeFilled />:<LikeOutlined />} onClick={OnClickLike}>点赞 {article.like_count ?? 0}</Button>
+                <Button icon={article.is_starred?<StarFilled />:<StarOutlined />} onClick={OnClickStar}>收藏 {article.star_count ?? 0}</Button>
             </div>
         </article>
     );

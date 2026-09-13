@@ -40,3 +40,20 @@ export function ArtUnlikeAPI(id){
         method:'DELETE'
     })
 }
+
+
+//收藏文章
+export function ArtStarAPI(id){
+    return request({
+        url:`/star/${id}`,
+        method:'GET'
+    })
+}
+
+//取消收藏
+export function ArtUnStarAPI(id){
+    return request({
+        url:`/star/${id}`,
+        method:'DELETE'
+    })
+}

@@ -42,4 +42,35 @@ def verify_token(token:str=Depends(oauth2_scheme)):
         )
     return payload
 
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl='/login',auto_error=False)
+
+def optional_user(token: str | None = Depends(oauth2_scheme_optional)):
+    """返回 token 的 payload；匿名或 token 无效时返回 None——永不抛 401。"""
+    if not token:
+        return None
+    try:
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.InvalidTokenError:
+        # ExpiredSignatureError 是 InvalidTokenError 的子类，这里一个 except 就够。
+        # 坏 token 当匿名处理，不让整个列表页打不开
+        return None
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
