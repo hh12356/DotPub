@@ -1,6 +1,8 @@
 //axios的封装处理
 import axios from "axios";
-import { getToken } from '@/utils/token'
+import { getToken, removeToken } from '@/utils/token'
+import { removeUserName } from "./userName";
+import router from "@/router";
 //1.根域名配置
 //2.超时时间
 //3.请求拦截器/响应拦截器
@@ -38,11 +40,11 @@ request.interceptors.response.use((response) => {
     return Promise.reject(error)
   }
   console.dir(error)
-//401待添加
-//   if(error.response.status === 401){
-//     router.navigate('/login')
-//     window.location.reload()
-//   }
+  if(error.response.status === 401){
+    removeToken()
+    removeUserName()
+    router.navigate('/login')
+  }
   return Promise.reject(error)
 })
 

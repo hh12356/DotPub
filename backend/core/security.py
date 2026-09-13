@@ -31,13 +31,13 @@ def verify_token(token:str=Depends(oauth2_scheme)):
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=401,
-            detail="token已过期",
+            detail={"msg":"登录已过期"},
             headers={"WWW-Authenticate":"Bearer"}
         )
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=401,
-            detail="token无效",
+            detail={"msg":"登录信息无效"},
             headers={"WWW-Authenticate": "Bearer"}
         )
     return payload

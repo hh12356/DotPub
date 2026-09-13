@@ -54,8 +54,8 @@ const Article = () => {
               没点过才用 Outlined，别再单独加一套图标。
             */}
             <div className="article-actions">
-                <Button icon={<LikeOutlined />}>点赞</Button>
-                <Button icon={<StarOutlined />}>收藏</Button>
+                <Button icon={<LikeOutlined />}>点赞 {article.like ?? 0}</Button>
+                <Button icon={<StarOutlined />}>收藏 {article.star ?? 0}</Button>
             </div>
         </article>
     );

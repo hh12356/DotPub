@@ -4,6 +4,9 @@ import 'react-quill-new/dist/quill.snow.css';
 import './index.scss';
 import { ArtSubmitAPI } from '@/apis/article';
 import { useNavigate } from 'react-router-dom';
+import { getToken, removeToken } from '@/utils/token';
+import { removeUserName } from '@/utils/userName';
+import { useEffect, useState } from 'react';
 
 const Write = () => {
     const navigate = useNavigate()
@@ -13,22 +16,29 @@ const Write = () => {
         !html || (html.replace(/<[^>]*>/g, '').trim() === '' && !/<(img|video|iframe)\b/i.test(html));
 
     const onFinish = async (values) => {
-        //校验正文是否为空
-        if (isEmptyHtml(values.art_content)) {
-            message.error('请输入正文');
-            return;
+        if(!notLogin){
+            //校验正文是否为空
+            if (isEmptyHtml(values.art_content)) {
+                message.error('请输入正文');
+                return;
+            }
+            //提交至后端
+            try{
+                await ArtSubmitAPI(values)
+                message.success('上传成功')
+                navigate('/')
+                //缺少高亮切换
+            }
+            catch(e){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
         }
-        //提交至后端
-        try{
-            await ArtSubmitAPI(values)
-            message.success('上传成功')
-            navigate('/')
-            //缺少高亮切换
-        }
-        catch(e){
-            message.error(e.response?.data?.detail?.msg||'请求失败，请稍后重试')
+        else{
+            navigate('/login')
         }
     };
+
+    const notLogin = !getToken()
 
     return (
         <div id="write-container">
@@ -36,18 +46,18 @@ const Write = () => {
             <Form onFinish={onFinish}>
                 <Form.Item
                     name="art_title"
-                    rules={[{ required: true, message: '请输入标题' }]}
+                    rules={[{ required: !notLogin, message: '请输入标题' }]}
                 >
-                    <Input variant="filled" placeholder="标题" />
+                    <Input variant="filled" placeholder={notLogin&&'标题'} disabled={notLogin}/>
                 </Form.Item>
 
                 <Form.Item name="art_content" className="editor-item">
-                    <ReactQuill theme="snow" placeholder="正文" />
+                    <ReactQuill theme="snow" placeholder={notLogin?'未登录':"正文"} readOnly={notLogin}/>
                 </Form.Item>
 
                 <Form.Item>
                     <Button type="primary" htmlType="submit">
-                        提交
+                        {notLogin?'去登录':'提交'}
                     </Button>
                 </Form.Item>
             </Form>
