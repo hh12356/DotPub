@@ -1,9 +1,10 @@
-import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI } from '@/apis/article';
-import { HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
-import { Button, message, Typography } from 'antd';
+import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI } from '@/apis/article';
+import { DeleteOutlined, HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
+import { Button, Empty, Input, Listy, message, Popconfirm, Typography } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getUserId } from '@/utils/token';
 import 'react-quill-new/dist/quill.core.css';
 import './index.scss';
 
@@ -13,7 +14,11 @@ const formatDate = (iso) =>
 const Article = () => {
     const params = useParams();
     const art_id = Number(params.id);
+    const myId = getUserId();
     const [article, setArticle] = useState({});
+    //comment 是输入框里的草稿，comments 是列表数据（等接口）
+    const [comment, setComment] = useState('');
+    const [comments, setComments] = useState([]);
 
     const fetchArticle =useCallback(async () => {
         const res = await ArtGetAPI(art_id);
@@ -58,6 +63,37 @@ const Article = () => {
         }
     }
 
+    //拉取评论
+    const fetchCmt = async ()=>{
+        const res = await ArtGetCmtAPI(art_id)
+        setComments(res.data)
+    }
+    useEffect(()=>{
+        fetchCmt()
+    },[art_id])
+
+    //发布评论
+    const onSubmitComment = async () => {
+        await ArtCmtAPI(art_id,comment)
+        fetchCmt()
+        setComment('')
+        message.success('发布成功')
+    }
+
+    //删除评论
+    const onDeleteCmt = async (cmt_id) => {
+        try{
+            await ArtDelCmtAPI(cmt_id)
+            fetchCmt()
+            message.success('删除成功')
+        }
+        catch(e){
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+
     const navigate = useNavigate()
     const onClickAuthor = ()=>{
         navigate(`/profile/${article.art_author_id}`)
@@ -87,6 +123,54 @@ const Article = () => {
             <div className="article-actions">
                 <Button icon={article.is_liked?<HeartFilled />:<HeartOutlined />} onClick={OnClickLike}>点赞 {article.like_count ?? 0}</Button>
                 <Button icon={article.is_starred?<StarFilled />:<StarOutlined />} onClick={OnClickStar}>收藏 {article.star_count ?? 0}</Button>
+            </div>
+
+            <div className="article-comments">
+                <Typography.Title level={4}>评论 {article.comment_count}</Typography.Title>
+
+                <Input.TextArea
+                    rows={3}
+                    maxLength={500}
+                    placeholder="写下你的想法……"
+                    value={comment}
+                    onChange={e => setComment(e.target.value)}
+                />
+                <div className="comment-submit">
+                    <Button
+                        type="primary"
+                        disabled={!comment.trim()}
+                        onClick={onSubmitComment}
+                    >
+                        发布
+                    </Button>
+                </div>
+
+                {comments.length === 0
+                    ? <Empty description="还没有评论" style={{ marginTop: 32 }} />
+                    : <Listy
+                        items={comments}
+                        rowKey={(item)=>item.cmt_id}
+                        styles={{ item: { borderBottom: 'none' } }}
+                        itemRender={(item) => (
+                            <div className="comment-item">
+                                <div className="comment-head">
+                                    <span className="comment-name">{item.user_name}</span>
+                                    <span className="comment-time">{formatDate(item.cmt_pub_datetime)}</span>
+                                    {item.cmt_user_id === myId && (
+                                        <Popconfirm
+                                            title="确定删除这条评论吗？"
+                                            okText="删除"
+                                            cancelText="取消"
+                                            onConfirm={()=>onDeleteCmt(item.cmt_id)}
+                                        >
+                                            <DeleteOutlined className="comment-delete" />
+                                        </Popconfirm>
+                                    )}
+                                </div>
+                                <div className="comment-content">{item.cmt_content}</div>
+                            </div>
+                        )}
+                      />}
             </div>
         </article>
     );

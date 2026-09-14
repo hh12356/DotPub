@@ -65,3 +65,28 @@ export function ArtSrchAPI(q){
         method:'GET'
     })
 }
+
+//发布评论
+export function ArtCmtAPI(q,cmt){
+    return request({
+        url:`/comment/${q}`,
+        method:'PUT',
+        data:{"cmt_content":cmt}
+    })
+}
+
+//拉取评论
+export function ArtGetCmtAPI(q){
+    return request({
+        url:`/comment/${q}`,
+        method:'GET',
+    })
+}
+
+//删除评论
+export function ArtDelCmtAPI(cmt_id){
+    return request({
+        url:`/comment/${cmt_id}`,
+        method:'DELETE'
+    })
+}

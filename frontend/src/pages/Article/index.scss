@@ -97,4 +97,74 @@
         padding-top: 24px;
         border-top: 1px solid #f0f0f0;
     }
+
+    .article-comments {
+        margin-top: 48px;
+        padding-top: 24px;
+        border-top: 1px solid #f0f0f0;
+
+        // 按钮右对齐
+        .comment-submit {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: 12px;
+        }
+
+        // 评论不做成一张张卡片——卡片套在正文里显得很重，
+        // 用发丝线分隔的平铺列表更像评论区，也更好扫读
+        .comment-item {
+            padding: 16px 0;
+            border-bottom: 1px solid #f5f5f5;
+
+            &:last-child {
+                border-bottom: none;
+            }
+        }
+
+        .comment-head {
+            display: flex;
+            // baseline 而不是 center：让名字和时间的文字底边对齐，
+            // 字号不一样时用 center 会看起来高低不齐
+            align-items: baseline;
+            gap: 10px;
+            margin-bottom: 6px;
+        }
+
+        .comment-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: rgba(0, 0, 0, 0.88);
+        }
+
+        .comment-time {
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.45);
+        }
+
+        .comment-delete {
+            // margin-left: auto 把它推到最右边——删除是次要操作，不跟名字抢位置
+            margin-left: auto;
+            // 父级是 align-items: baseline，但图标没有文字基线，
+            // 会按底边对齐而显得偏高，所以单独让它垂直居中
+            align-self: center;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.45);
+            cursor: pointer;
+
+            // hover 才变红，平时不吓人
+            &:hover {
+                color: #ff4d4f;
+            }
+        }
+
+        .comment-content {
+            // 评论框里能敲回车，所以不能用默认的 normal——它会把换行折叠成空格。
+            // 用 pre-line 而不是 pre-wrap：换行保留，但连续空格和缩进折叠掉，
+            // 用户随手敲的前导空格不会在评论里撑出一块空白
+            white-space: pre-line;
+            font-size: 15px;
+            line-height: 1.7;
+            color: rgba(0, 0, 0, 0.75);
+        }
+    }
 }

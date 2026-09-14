@@ -16,6 +16,15 @@ export function UserProfileAPI(id){
     })
 }
 
+//修改个人简介请求
+export function UpdateBioAPI(user_bio){
+    return request({
+        url:'/profile/bio',
+        method:'PUT',
+        data:{user_bio}
+    })
+}
+
 
 //获取喜欢请求
 export function UserLikesAPI(){

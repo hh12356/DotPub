@@ -12,6 +12,7 @@ from tortoise.exceptions import IntegrityError
 
 from models.article import *
 from models.interaction import *
+from models.comment import *
 
 article_api = APIRouter()
 
@@ -76,7 +77,8 @@ async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depen
 async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
     articles = await Article.annotate(
         like_count=Count("like_records",distinct=True),
-        star_count=Count("star_records",distinct=True)
+        star_count=Count("star_records",distinct=True),
+        comment_count=Count("comments",distinct=True)
     ).select_related("art_author")
     #Queryset : [Student(),Student(),Student(),...]
 
@@ -100,6 +102,7 @@ async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
                 "art_author": a.art_author.user_name,
                 "like_count": a.like_count,
                 "star_count": a.star_count,
+                "comment_count": a.comment_count,
                 "is_liked": a.art_id in liked_ids,
                 "is_starred": a.art_id in starred_ids,
             }
@@ -113,6 +116,7 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
     article = await Article.get(art_id=art_id).select_related("art_author")
     like_count = await ArticleLike.filter(art_id=art_id).count()
     star_count = await ArticleStar.filter(art_id=art_id).count()
+    comment_count = await Comment.filter(cmt_art_id=art_id).count()
 
     is_liked = is_starred = False
     if user:
@@ -128,6 +132,7 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
             "art_author_id":article.art_author.user_id,
             "like_count":like_count,
             "star_count":star_count,
+            "comment_count":comment_count,
             "is_liked":is_liked,
             "is_starred":is_starred
         }
@@ -140,7 +145,8 @@ async def search_article(value:str,user:Annotated[dict | None , Depends(optional
         art_title__icontains=value
     ).annotate(
         like_count=Count("like_records",distinct=True),
-        star_count=Count("star_records",distinct=True)
+        star_count=Count("star_records",distinct=True),
+        comment_count=Count("comments",distinct=True)
     ).select_related("art_author"))
     #Queryset : [Student(),Student(),Student(),...]
 
@@ -164,6 +170,7 @@ async def search_article(value:str,user:Annotated[dict | None , Depends(optional
                 "art_author": a.art_author.user_name,
                 "like_count": a.like_count,
                 "star_count": a.star_count,
+                "comment_count": a.comment_count,
                 "is_liked": a.art_id in liked_ids,
                 "is_starred": a.art_id in starred_ids,
             }
@@ -208,4 +215,55 @@ async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id=token_data["user_id"]
     await ArticleStar.filter(user_id=user_id,art_id=art_id).delete()
     return {"code": 200, "msg": "取消收藏成功","like":False}
+
+class CommentIn(BaseModel):
+    cmt_content:str
+
+#发布评论
+@article_api.put('/comment/{art_id}')
+async def add_comment(art_id,cmt_data:CommentIn,token_data:Annotated[dict,Depends(verify_token)]):
+    await Comment.create(cmt_content=cmt_data.cmt_content,cmt_art_id=art_id,cmt_user_id=token_data["user_id"])
+    return {"code":200,"msg":"发布成功"}
+
+#获取评论
+@article_api.get('/comment/{art_id}')
+async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)]):
+    comments = await Comment.filter(cmt_art_id=art_id).select_related("cmt_user").order_by("-cmt_pub_datetime")
+    return {
+        "code":200,
+        "msg":"发布成功",
+        "data":[
+            {
+                "cmt_id":c.cmt_id,
+                "user_name":c.cmt_user.user_name,
+                "cmt_user_id":c.cmt_user_id,
+                "cmt_content":c.cmt_content,
+                "cmt_pub_datetime":c.cmt_pub_datetime
+            }
+            for c in comments
+        ]
+    }
+
+#删除评论
+@article_api.delete('/comment/{cmt_id}')
+async def delete_comment(cmt_id:int,token_data:Annotated[dict,Depends(verify_token)]):
+    deleted = await Comment.filter(
+        cmt_id=cmt_id,
+        cmt_user_id=token_data["user_id"]
+    ).delete()
+    if not deleted:
+        # 0 行有两种可能：评论不存在，或者不是你的。都返回 403 不区分——
+        # 区分了等于告诉攻击者"这条评论确实存在"
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code":403,
+                "msg":"只能删除自己的评论"
+            }
+        )
+    return {"code":200,"msg":"删除成功"}
+
+
+
+
 

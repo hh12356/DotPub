@@ -1,6 +1,7 @@
-import { UserProfileAPI } from "@/apis/user"
+import { UserProfileAPI,UpdateBioAPI } from "@/apis/user"
 import ArticleCard from "@/components/ArticleCard"
-import { Flex, Result, Statistic, Typography,Listy } from "antd"
+import { EditOutlined } from "@ant-design/icons"
+import { Flex, Input, Result, Statistic, Typography,Listy, message } from "antd"
 import { useEffect, useState,useMemo } from "react"
 import { useParams } from "react-router-dom"
 
@@ -11,6 +12,9 @@ const Profile = () => {
     const { id } = useParams()
     const [data, setData] = useState({})
     const [error, setError] = useState(null)
+    //编辑简介：editing 决定显示输入框还是文字，draft 是编辑中的草稿
+    const [editing, setEditing] = useState(false)
+    const [draft, setDraft] = useState('')
 
     useEffect(() => {
         const fetchData = async () => {
@@ -43,13 +47,50 @@ const Profile = () => {
     const name = data.user_name ?? ''
     if (!name) return null   //还没加载完先不画，省得闪一下
 
+    //点图标：把当前简介灌进草稿，再切到编辑态
+    const onEdit = () => {
+        setDraft(data.user_bio)
+        setEditing(true)
+    }
+
+    const onSave = async () => {
+        try {
+            await UpdateBioAPI(draft)
+            setData({ ...data, user_bio: draft })   //本地先更新，省一次重新拉接口
+            setEditing(false)
+            message.success("编辑成功")
+        } catch {
+            //保存失败就留在编辑态：草稿不丢，可以直接重试
+        }
+    }
+
     return (
         <div>
             <div style={{ width: '85vw', margin: '24px auto' }}>
                 <Typography.Title level={1} style={{ margin: 0 }}>{name}</Typography.Title>
-                <Typography.Paragraph type="secondary" style={{ margin: '8px 0 0' }}>
-                    {data.user_bio || '这个人很懒，什么都没写'}
-                </Typography.Paragraph>
+                <Flex align="center" gap={8} style={{ marginTop: 8 }}>
+                    {editing
+                        ? <Input.TextArea
+                            autoFocus
+                            autoSize={{ minRows: 2, maxRows: 6 }}
+                            maxLength={100}          
+                            placeholder="介绍一下自己吧"
+                            value={draft}
+                            onChange={e => setDraft(e.target.value)}
+                            onBlur={onSave}   //点别处就保存
+                            style={{ flex: 1 }}   //撑满整行，跟简介、统计、文章列表同宽
+                          />
+                        : <>
+                            {/*pre-wrap 必须加：HTML 默认把换行符当空格折叠掉，
+                               不加这行就算存进去了换行也看不出来*/}
+                            <Typography.Paragraph type="secondary" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+                                {data.user_bio || '这个人很懒，什么都没写'}
+                            </Typography.Paragraph>
+                            {data.self && (
+                                <EditOutlined style={{ cursor: 'pointer', color: 'rgba(0,0,0,0.45)' }} onClick={onEdit}/>
+                            )}
+                          </>}
+                </Flex>
                 <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                     {data.user_join_date?.slice(0, 10)} 加入DotPub
                 </Typography.Text>

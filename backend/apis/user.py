@@ -6,7 +6,7 @@ from core.security import verify_token,optional_user
 
 from fastapi import APIRouter,HTTPException
 from fastapi.params import Depends
-from pydantic import BaseModel
+from pydantic import BaseModel,Field
 from tortoise.exceptions import IntegrityError
 
 from models.article import *
@@ -182,6 +182,14 @@ async def get_user_profile(tar_id:int,user:Annotated[dict | None , Depends(optio
             }
         }
 
+class BioIn(BaseModel):
+    user_bio:str=Field(max_length=100)
+
+#修改简介请求
+@user_api.put('/profile/bio')
+async def edit_user_bio(bio_data:BioIn,token_data: Annotated[dict, Depends(verify_token)]):
+    await UserAccount.filter(user_id=token_data["user_id"]).update(user_bio=bio_data.user_bio)
+    return {"code": 200, "msg": "修改成功"}
 
 
 

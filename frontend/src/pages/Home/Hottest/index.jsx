@@ -12,8 +12,10 @@ const FRESH_WINDOW = 90 * 24 * 3600
 //0.3 ≈ 票数差 2 倍，或发布时间差 27 天
 const JITTER = 0.3
 
-//点赞权重0.4，收藏权重0.6
-const vote = (a) => 0.4 * (a.like_count ?? 0) + 0.6 * (a.star_count ?? 0)
+//点赞权重0.25，评论权重0.35，收藏权重0.4
+const vote = (a) => 0.25 * (a.like_count ?? 0)
+    + 0.35 * (a.comment_count ?? 0)
+    + 0.4 * (a.star_count ?? 0)
 
 const Hottest = () => {
 
