@@ -24,9 +24,13 @@ const Login = ()=>{
         navigate('/signup')
     }
 
+    const toHome = ()=>{
+        navigate('/')
+    }
+
     return (
         <div id='container'>
-            <h1>DotPub</h1>
+            <h1 onClick={toHome}>DotPub</h1>
             <Form
             validateTrigger={'onBlur'}
             onFinish={(values)=>onFinish(values)}
