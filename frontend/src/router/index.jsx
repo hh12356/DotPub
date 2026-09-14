@@ -7,6 +7,9 @@ import { Greatest,Latest,Hottest } from '@/pages/Home'
 import {createBrowserRouter} from 'react-router-dom'
 import Article from "@/pages/Article"
 import Search from "@/pages/Search"
+import Likes from "@/pages/User/Likes"
+import Stars from "@/pages/User/Stars"
+import Profile from "@/pages/User/Profile"
 
 //配置路由实例
 const router = createBrowserRouter([
@@ -42,6 +45,18 @@ const router = createBrowserRouter([
             {
                 path:'/search',
                 element:<Search/>
+            },
+            {
+                path:'/likes',
+                element:<Likes/>
+            },
+            {
+                path:'/stars',
+                element:<Stars/>
+            },
+            {
+                path:'/profile',
+                element:<Profile/>
             },
         ]
     },

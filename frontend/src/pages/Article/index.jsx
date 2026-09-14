@@ -1,5 +1,5 @@
 import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI } from '@/apis/article';
-import { LikeOutlined, StarOutlined,LikeFilled,StarFilled } from '@ant-design/icons';
+import { HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
 import { Button, message, Typography } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
@@ -80,7 +80,7 @@ const Article = () => {
             />
 
             <div className="article-actions">
-                <Button icon={article.is_liked?<LikeFilled />:<LikeOutlined />} onClick={OnClickLike}>点赞 {article.like_count ?? 0}</Button>
+                <Button icon={article.is_liked?<HeartFilled />:<HeartOutlined />} onClick={OnClickLike}>点赞 {article.like_count ?? 0}</Button>
                 <Button icon={article.is_starred?<StarFilled />:<StarOutlined />} onClick={OnClickStar}>收藏 {article.star_count ?? 0}</Button>
             </div>
         </article>

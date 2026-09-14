@@ -1,4 +1,4 @@
-import { LikeFilled, LikeOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
+import { HeartFilled, HeartOutlined, StarFilled, StarOutlined } from '@ant-design/icons';
 import { Card, Space, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { firstLine } from '@/utils/html_process';
@@ -24,7 +24,7 @@ const ArticleCard = ({ article }) => {
 
             <Space size={16} style={{ fontSize: 13, color: 'rgba(0, 0, 0, 0.45)' }}>
                 <span>
-                    {article.is_liked?<LikeFilled/>:<LikeOutlined />} {article.like_count ?? 0}
+                    {article.is_liked?<HeartFilled/>:<HeartOutlined />} {article.like_count ?? 0}
                 </span>
                 <span>
                     {article.is_starred?<StarFilled/>:<StarOutlined />} {article.star_count ?? 0}

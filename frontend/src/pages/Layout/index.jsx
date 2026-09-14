@@ -3,6 +3,8 @@ import {
   HomeOutlined, EditOutlined, MenuOutlined, SearchOutlined,
   FireOutlined, ClockCircleOutlined, TrophyOutlined,
   UserOutlined, LogoutOutlined,
+  HeartOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import { Menu } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
@@ -20,7 +22,9 @@ const Layout = () => {
     login:'/login',
     profile:'/profile',
     exit:'/',
-    search:'/search'
+    search:'/search',
+    likes:'/likes',
+    stars:'/stars',
   }
   const navigate = useNavigate()
   const onClick = e => {
@@ -93,6 +97,8 @@ const Layout = () => {
             label: 'User',
             children: [
               { label: 'Profile', key: 'profile', icon: <UserOutlined /> },
+              { label: 'Likes', key: 'likes', icon: <HeartOutlined /> },
+              { label: 'Stars', key: 'stars', icon: <StarOutlined /> },
               { label: 'Exit', key: 'exit', icon: <LogoutOutlined /> },
             ],
           },

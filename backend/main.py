@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from tortoise.contrib.fastapi import register_tortoise
 
+from apis.user import user_api
 from core.setting import TORTOISE_ORM
 
 from apis.login import login_api
@@ -15,6 +16,7 @@ app = FastAPI()
 app.include_router(login_api,tags=["登录模块"])
 app.include_router(sign_up_api,tags=["注册模块"])
 app.include_router(article_api,tags=["文章模块"])
+app.include_router(user_api,tags=["用户模块"])
 
 app.add_middleware(
     CORSMiddleware,

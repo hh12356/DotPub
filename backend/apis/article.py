@@ -55,7 +55,6 @@ class SubmitData(BaseModel):
 #上传文章
 @article_api.post("/article")
 async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depends(verify_token)]):
-    print(token_data)
     user_id=token_data["user_id"]
     article = await Article.create(
         # art_title 不用清洗：前端是当纯文本渲染的（React 自动转义），
