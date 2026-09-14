@@ -3,7 +3,7 @@ import { HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/
 import { Button, message, Typography } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import 'react-quill-new/dist/quill.core.css';
 import './index.scss';
 
@@ -58,12 +58,17 @@ const Article = () => {
         }
     }
 
+    const navigate = useNavigate()
+    const onClickAuthor = ()=>{
+        navigate(`/profile/${article.art_author_id}`)
+    }
+
     return (
         <article id="article-page">
             <Typography.Title level={1}>{article.art_title}</Typography.Title>
 
             <div className="article-meta">
-                <span>{article.art_author}</span>
+                <span onClick={onClickAuthor} style={{cursor:"pointer"}}>{article.art_author}</span>
                 <span>·</span>
                 <span>{formatDate(article.art_pub_datetime)}</span>
             </div>

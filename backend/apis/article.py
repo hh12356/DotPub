@@ -125,6 +125,7 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
         "data": {
             **dict(article),
             "art_author": article.art_author.user_name,
+            "art_author_id":article.art_author.user_id,
             "like_count":like_count,
             "star_count":star_count,
             "is_liked":is_liked,

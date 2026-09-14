@@ -10,6 +10,7 @@ import Search from "@/pages/Search"
 import Likes from "@/pages/User/Likes"
 import Stars from "@/pages/User/Stars"
 import Profile from "@/pages/User/Profile"
+import UserArt from "@/pages/User/UserArt"
 
 //配置路由实例
 const router = createBrowserRouter([
@@ -55,8 +56,12 @@ const router = createBrowserRouter([
                 element:<Stars/>
             },
             {
-                path:'/profile',
+                path:'/profile/:id',
                 element:<Profile/>
+            },
+            {
+                path:'/userart',
+                element:<UserArt/>
             },
         ]
     },

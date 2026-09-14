@@ -5,12 +5,13 @@ import {
   UserOutlined, LogoutOutlined,
   HeartOutlined,
   StarOutlined,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { Menu } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { getUserName, removeUserName } from '@/utils/userName';
 import './index.scss';
-import { removeToken } from '@/utils/token';
+import { removeToken, getUserId } from '@/utils/token';
 
 const Layout = () => {
   const [current, setCurrent] = useState('mail');
@@ -20,11 +21,12 @@ const Layout = () => {
     greatest: '/home/greatest',
     write:'/write',
     login:'/login',
-    profile:'/profile',
+    profile:`/profile/${getUserId()}`,
     exit:'/',
     search:'/search',
     likes:'/likes',
     stars:'/stars',
+    article:'/userart'
   }
   const navigate = useNavigate()
   const onClick = e => {
@@ -97,6 +99,7 @@ const Layout = () => {
             label: 'User',
             children: [
               { label: 'Profile', key: 'profile', icon: <UserOutlined /> },
+              { label: 'Article', key: 'article', icon: <FileTextOutlined /> },
               { label: 'Likes', key: 'likes', icon: <HeartOutlined /> },
               { label: 'Stars', key: 'stars', icon: <StarOutlined /> },
               { label: 'Exit', key: 'exit', icon: <LogoutOutlined /> },
