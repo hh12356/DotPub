@@ -1,10 +1,9 @@
-import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI } from '@/apis/article';
+import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtDelAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI } from '@/apis/article';
 import { DeleteOutlined, HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
 import { Button, Empty, Input, Listy, message, Popconfirm, Typography } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getUserId } from '@/utils/token';
 import 'react-quill-new/dist/quill.core.css';
 import './index.scss';
 
@@ -14,7 +13,7 @@ const formatDate = (iso) =>
 const Article = () => {
     const params = useParams();
     const art_id = Number(params.id);
-    const myId = getUserId();
+    const navigate = useNavigate();
     const [article, setArticle] = useState({});
     //comment 是输入框里的草稿，comments 是列表数据（等接口）
     const [comment, setComment] = useState('');
@@ -63,6 +62,20 @@ const Article = () => {
         }
     }
 
+    //删除文章
+    const OnDeleteArticle = async () => {
+        try{
+            await ArtDelAPI(art_id)
+            message.success('删除成功')
+            navigate('/')
+        }
+        catch(e){
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+
     //拉取评论
     const fetchCmt = async ()=>{
         const res = await ArtGetCmtAPI(art_id)
@@ -94,7 +107,6 @@ const Article = () => {
         }
     }
 
-    const navigate = useNavigate()
     const onClickAuthor = ()=>{
         navigate(`/profile/${article.art_author_id}`)
     }
@@ -123,10 +135,22 @@ const Article = () => {
             <div className="article-actions">
                 <Button icon={article.is_liked?<HeartFilled />:<HeartOutlined />} onClick={OnClickLike}>点赞 {article.like_count ?? 0}</Button>
                 <Button icon={article.is_starred?<StarFilled />:<StarOutlined />} onClick={OnClickStar}>收藏 {article.star_count ?? 0}</Button>
+                
+                {article.can_delete && (
+                    <Popconfirm
+                        title="确定删除这篇文章吗？"
+                        description="评论、点赞、收藏会一起消失，无法恢复"
+                        okText="删除"
+                        cancelText="取消"
+                        onConfirm={OnDeleteArticle}
+                    >
+                        <Button danger icon={<DeleteOutlined />} style={{ marginLeft: 'auto' }}>删除</Button>
+                    </Popconfirm>
+                )}
             </div>
 
             <div className="article-comments">
-                <Typography.Title level={4}>评论 {article.comment_count}</Typography.Title>
+                <Typography.Title level={4}>评论 {comments.length}</Typography.Title>
 
                 <Input.TextArea
                     rows={3}
@@ -156,7 +180,7 @@ const Article = () => {
                                 <div className="comment-head">
                                     <span className="comment-name">{item.user_name}</span>
                                     <span className="comment-time">{formatDate(item.cmt_pub_datetime)}</span>
-                                    {item.cmt_user_id === myId && (
+                                    {item.can_delete && (
                                         <Popconfirm
                                             title="确定删除这条评论吗？"
                                             okText="删除"

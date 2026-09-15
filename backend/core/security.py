@@ -8,6 +8,8 @@ from fastapi import HTTPException
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 
+from models.user import *
+
 ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=4)
 
 def hash_pwd(pwd:str)->str:
@@ -72,6 +74,8 @@ def optional_user(token: str | None = Depends(oauth2_scheme_optional)):
         return None
 
 
+async def is_admin(user_id: int) -> bool:
+    return await UserAccount.filter(user_id=user_id, user_role="admin").exists()
 
 
 

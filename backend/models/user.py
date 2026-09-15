@@ -9,6 +9,9 @@ class UserAccount(Model):
     user_bio = fields.CharField(max_length=100, default="", description="用户简介")
     user_join_date = fields.DatetimeField(null=True, auto_now_add=True, description="加入时间")
 
+    #字符串：admin user 后续还可加
+    user_role = fields.CharField(max_length=32,description="用户权限",default="user")
+
     articles = fields.ReverseRelation["Article"]
 
 

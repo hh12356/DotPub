@@ -83,12 +83,6 @@ const Layout = () => {
       icon: <SearchOutlined />,
     },
     {
-      label: 'Notifications',
-      key: 'notifications',
-      icon: <MenuOutlined />,
-      disabled: true,
-    },
-    {
       label: userName||"登录",
       key: 'login',
       style: { marginLeft: 'auto', marginRight: 16 },

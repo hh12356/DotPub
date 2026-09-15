@@ -27,6 +27,7 @@ async def verify_user_info(login_data:LoginData):
         "data":{
             "user_id":user.user_id,
             "user_name":user.user_name,
-            "token":get_token({"user_id":user.user_id})
+            "token":get_token({"user_id":user.user_id}),
+            "user_role":user.user_role
         }
     }

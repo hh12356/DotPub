@@ -25,6 +25,14 @@ export function ArtGetAPI(id){
     })
 }
 
+//删除文章请求
+export function ArtDelAPI(id){
+    return request({
+        url:`/article/${id}`,
+        method:'DELETE'
+    })
+}
+
 //点赞文章
 export function ArtLikeAPI(id){
     return request({

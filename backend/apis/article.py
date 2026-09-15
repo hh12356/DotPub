@@ -2,12 +2,12 @@ from typing import Annotated
 
 from tortoise.functions import Count
 
-from core.security import verify_token,optional_user
+from core.security import verify_token, optional_user, is_admin
 
 import nh3
 from fastapi import APIRouter,HTTPException
 from fastapi.params import Depends
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from tortoise.exceptions import IntegrityError
 
 from models.article import *
@@ -70,7 +70,20 @@ async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depen
         "data": article
     }
 
-
+#删除文章
+@article_api.delete("/article/{art_id}")
+async def delete_article(art_id,token_data:Annotated[dict,Depends(verify_token)]):
+    user_id = token_data["user_id"]
+    article = await Article.get_or_none(art_id=art_id)
+    if not article or (
+            article.art_author_id != user_id and not await is_admin(user_id)
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail={"code": 403, "msg": "只能删除自己的文章"}
+        )
+    await article.delete()
+    return {"code": 200, "msg": "删除成功"}
 
 #获取所有文章
 @article_api.get("/article")
@@ -123,6 +136,10 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
         is_liked = await ArticleLike.filter(user_id=user["user_id"], art_id=art_id).exists()
         is_starred = await ArticleStar.filter(user_id=user["user_id"], art_id=art_id).exists()
 
+    can_delete = bool(user) and (
+        article.art_author_id == user["user_id"] or await is_admin(user["user_id"])
+    )
+
     return {
         "code": 200,
         "msg": "获取成功",
@@ -134,7 +151,8 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
             "star_count":star_count,
             "comment_count":comment_count,
             "is_liked":is_liked,
-            "is_starred":is_starred
+            "is_starred":is_starred,
+            "can_delete":can_delete
         }
     }
 
@@ -217,7 +235,7 @@ async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     return {"code": 200, "msg": "取消收藏成功","like":False}
 
 class CommentIn(BaseModel):
-    cmt_content:str
+    cmt_content:str=Field(max_length=500)
 
 #发布评论
 @article_api.put('/comment/{art_id}')
@@ -229,6 +247,7 @@ async def add_comment(art_id,cmt_data:CommentIn,token_data:Annotated[dict,Depend
 @article_api.get('/comment/{art_id}')
 async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)]):
     comments = await Comment.filter(cmt_art_id=art_id).select_related("cmt_user").order_by("-cmt_pub_datetime")
+    viewer_is_admin = bool(user) and await is_admin(user["user_id"])
     return {
         "code":200,
         "msg":"发布成功",
@@ -238,7 +257,8 @@ async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)
                 "user_name":c.cmt_user.user_name,
                 "cmt_user_id":c.cmt_user_id,
                 "cmt_content":c.cmt_content,
-                "cmt_pub_datetime":c.cmt_pub_datetime
+                "cmt_pub_datetime":c.cmt_pub_datetime,
+                "can_delete":bool(user) and (c.cmt_user_id == user["user_id"] or viewer_is_admin),
             }
             for c in comments
         ]
@@ -247,21 +267,17 @@ async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)
 #删除评论
 @article_api.delete('/comment/{cmt_id}')
 async def delete_comment(cmt_id:int,token_data:Annotated[dict,Depends(verify_token)]):
-    deleted = await Comment.filter(
-        cmt_id=cmt_id,
-        cmt_user_id=token_data["user_id"]
-    ).delete()
-    if not deleted:
-        # 0 行有两种可能：评论不存在，或者不是你的。都返回 403 不区分——
-        # 区分了等于告诉攻击者"这条评论确实存在"
+    user_id = token_data["user_id"]
+    comment = await Comment.get_or_none(cmt_id=cmt_id)
+    if not comment or (
+            comment.cmt_user_id != user_id and not await is_admin(user_id)
+    ):
         raise HTTPException(
             status_code=403,
-            detail={
-                "code":403,
-                "msg":"只能删除自己的评论"
-            }
+            detail={"code": 403, "msg": "只能删除自己的评论"}
         )
-    return {"code":200,"msg":"删除成功"}
+    await comment.delete()
+    return {"code": 200, "msg": "删除成功"}
 
 
 
