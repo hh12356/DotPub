@@ -1,3 +1,4 @@
+from core.setting import SECRET_KEY
 import jwt
 from datetime import datetime,timedelta,timezone
 
@@ -21,8 +22,6 @@ def verify_pwd(pwd:str,store:str)->bool:
         return False
 
 
-
-SECRET_KEY ="540ef9b13c132658d871078fe5e125ce8aa1ce371ec483d073b5aa222dfdeeec"
 ALGORITHM="HS256"
 limited_time=360
 
