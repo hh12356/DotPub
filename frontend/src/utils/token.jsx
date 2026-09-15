@@ -3,15 +3,15 @@
 const tokenkey='token_key'
 
 function setToken(token){
-    localStorage.setItem(tokenkey,token)
+    sessionStorage.setItem(tokenkey,token)
 }
 
 function getToken(){
-    return localStorage.getItem(tokenkey)
+    return sessionStorage.getItem(tokenkey)
 }
 
 function removeToken(){
-    localStorage.removeItem(tokenkey)
+    sessionStorage.removeItem(tokenkey)
 }
 
 function getUserId(){

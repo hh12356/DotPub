@@ -3,15 +3,15 @@
 const userNameKey='user_info_key'
 
 function setUserName(userName){
-    localStorage.setItem(userNameKey,userName)
+    sessionStorage.setItem(userNameKey,userName)
 }
 
 function getUserName(){
-    return localStorage.getItem(userNameKey)
+    return sessionStorage.getItem(userNameKey)
 }
 
 function removeUserName(){
-    localStorage.removeItem(userNameKey)
+    sessionStorage.removeItem(userNameKey)
 }
 
 export { setUserName,getUserName,removeUserName }
