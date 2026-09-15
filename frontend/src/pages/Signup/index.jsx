@@ -56,7 +56,10 @@ const Signup = ()=>{
 
                 <Form.Item
                 name="user_pwd"
-                rules={[{ required: true, message: '请输入密码' }]}
+                rules={[
+                    { required: true, message: '请输入密码' },
+                    { min: 8, message: '密码至少 8 位' }
+                ]}
                 >
                 <Input.Password  variant='filled' placeholder='密码'/>
                 </Form.Item>

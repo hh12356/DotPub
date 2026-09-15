@@ -1,7 +1,7 @@
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
 
-from core.security import get_token
+from core.security import get_token, hash_pwd
 from models.user import *
 
 sign_up_api = APIRouter()
@@ -10,7 +10,7 @@ class SignUpData(BaseModel):
     #手机号由前端校验
     user_phone:str
     user_name:str
-    user_pwd:str
+    user_pwd:str = Field(min_length=8)
 
 @sign_up_api.post("/signup")
 async def verify_user_info(sign_up_data:SignUpData):
@@ -20,7 +20,7 @@ async def verify_user_info(sign_up_data:SignUpData):
         if not exist_name:
             user = await UserAccount.create(
                 user_name=sign_up_data.user_name,
-                user_pwd=sign_up_data.user_pwd,
+                user_pwd=hash_pwd(sign_up_data.user_pwd),
                 user_phone=sign_up_data.user_phone
             )
             return {

@@ -1,9 +1,26 @@
 import jwt
 from datetime import datetime,timedelta,timezone
 
+from argon2 import PasswordHasher
+from argon2.exceptions import Argon2Error, InvalidHashError
 from fastapi import HTTPException
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
+
+ph = PasswordHasher(time_cost=3,memory_cost=65536,parallelism=4)
+
+def hash_pwd(pwd:str)->str:
+    #->str为类型注解，指返回类型为str
+    return ph.hash(pwd)
+
+def verify_pwd(pwd:str,store:str)->bool:
+    try:
+        ph.verify(store,pwd)
+        return True
+    except (Argon2Error,InvalidHashError):
+        return False
+
+
 
 SECRET_KEY ="540ef9b13c132658d871078fe5e125ce8aa1ce371ec483d073b5aa222dfdeeec"
 ALGORITHM="HS256"
