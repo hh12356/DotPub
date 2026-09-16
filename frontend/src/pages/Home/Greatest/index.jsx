@@ -1,4 +1,4 @@
-import { useArticles } from '@/hooks/useArticles';
+import { useArticles, pinnedFirst } from '@/hooks/useArticles';
 import ArticleCard from '@/components/ArticleCard';
 import { Listy } from 'antd';
 import { useMemo } from 'react';
@@ -11,7 +11,7 @@ const Greatest = () => {
     const articles = useArticles()
 
     const sortedArticles = useMemo(
-        () => [...articles].sort((a, b) => vote(b) - vote(a)),
+        () => [...articles].sort((a, b) => pinnedFirst(a, b) || vote(b) - vote(a)),
         [articles]
     );
 

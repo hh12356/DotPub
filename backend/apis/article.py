@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from tortoise.functions import Count
+from watchfiles import awatch
 
 from core.security import verify_token, optional_user, is_admin
 
@@ -163,6 +164,7 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
     can_delete = bool(user) and (
         article.art_author_id == user["user_id"] or await is_admin(user["user_id"])
     )
+    can_pin = bool(user) and await is_admin(user["user_id"])
 
     return {
         "code": 200,
@@ -176,7 +178,8 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
             "comment_count":comment_count,
             "is_liked":is_liked,
             "is_starred":is_starred,
-            "can_delete":can_delete
+            "can_delete":can_delete,
+            "can_pin":can_pin
         }
     }
 
@@ -308,6 +311,38 @@ async def delete_comment(cmt_id:int,token_data:Annotated[dict,Depends(verify_tok
         )
     await comment.delete()
     return {"code": 200, "msg": "删除成功"}
+
+class PinIn(BaseModel):
+    status:bool
+
+@article_api.put('/pin/{art_id}')
+async def change_pin(art_id:int, pin_data:PinIn, token_data:Annotated[dict,Depends(verify_token)]):
+    if await is_admin(token_data["user_id"]):
+        await Article.filter(art_id=art_id).update(is_pinned=pin_data.status)
+        return {
+            "code":200,
+            "msg":"修改置顶成功"
+        }
+    raise HTTPException(
+        status_code=403,
+        detail={
+            'msg':"权限不足"
+        }
+    )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

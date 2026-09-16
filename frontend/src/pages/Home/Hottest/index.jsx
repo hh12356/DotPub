@@ -1,4 +1,4 @@
-import { useArticles } from '@/hooks/useArticles';
+import { useArticles, pinnedFirst } from '@/hooks/useArticles';
 import ArticleCard from '@/components/ArticleCard';
 import { Listy } from 'antd';
 import { useMemo } from 'react';
@@ -30,7 +30,7 @@ const Hottest = () => {
                     - (now - Date.parse(a.art_pub_datetime) / 1000) / FRESH_WINDOW
                     + (Math.random() * 2 - 1) * JITTER,
             }))
-            .sort((x, y) => y.score - x.score)
+            .sort((x, y) => pinnedFirst(x.a, y.a) || y.score - x.score)
             .map(({ a }) => a)
     }, [articles]);
 

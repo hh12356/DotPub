@@ -107,3 +107,15 @@ export function ArtDelCmtAPI(cmt_id){
         method:'DELETE'
     })
 }
+
+//修改置顶请求，value 传目标状态：true=置顶 false=取消置顶
+export function ArtPinAPI(id,value){
+    return request({
+        url:`/pin/${id}`,
+        method:'PUT',
+        data:{status:value}
+    })
+}
+
+
+

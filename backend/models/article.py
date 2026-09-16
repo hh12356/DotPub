@@ -7,6 +7,8 @@ class Article(Model):
     art_pub_datetime = fields.DatetimeField(auto_now_add=True,description="文章发布时间")
     art_content = fields.TextField(description="文章内容")
 
+    is_pinned = fields.BooleanField(default=False, description="是否置顶")
+
     art_author = fields.ForeignKeyField(
         "models.UserAccount",
         related_name="articles",

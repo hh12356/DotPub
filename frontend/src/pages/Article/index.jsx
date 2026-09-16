@@ -1,5 +1,5 @@
-import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtDelAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI } from '@/apis/article';
-import { DeleteOutlined, EditOutlined, HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
+import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtDelAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI, ArtPinAPI } from '@/apis/article';
+import { DeleteOutlined, EditOutlined, HeartOutlined, PushpinOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
 import { Button, Empty, Input, Listy, message, Popconfirm, Typography,Result } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
@@ -61,6 +61,20 @@ const Article = () => {
                 await ArtUnStarAPI(art_id)
             }
             await fetchArticle()
+        }
+        catch(e){
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+
+    //置顶/取消置顶，next 是目标状态（true=置顶，false=取消）
+    const onPin = async (next) => {
+        try{
+            await ArtPinAPI(art_id, next)
+            setArticle({ ...article, is_pinned: next })   //本地先改，省一次重新拉接口
+            message.success(next ? '已置顶' : '已取消置顶')
         }
         catch(e){
             if(e.response?.status !== 401){
@@ -164,8 +178,23 @@ const Article = () => {
                 
                 {article.can_delete && (
                     <>
-                        {/*marginLeft:auto 挂在组里第一个上，把编辑+删除一起推到最右边*/}
-                        <Button icon={<EditOutlined />} onClick={onEditArticle} style={{ marginLeft: 'auto' }}>编辑</Button>
+                        {/*marginLeft:auto 挂在组里第一个上，把操作组一起推到最右边*/}
+                        {article.can_pin && (
+                            <Button
+                                icon={<PushpinOutlined />}
+                                onClick={() => onPin(!article.is_pinned)}
+                                style={{ marginLeft: 'auto' }}
+                            >
+                                {article.is_pinned ? '已置顶' : '置顶'}
+                            </Button>
+                        )}
+                        <Button
+                            icon={<EditOutlined />}
+                            onClick={onEditArticle}
+                            style={{ marginLeft: article.can_pin ? 0 : 'auto' }}
+                        >
+                            编辑
+                        </Button>
                         <Popconfirm
                             title="确定删除这篇文章吗？"
                             description="评论、点赞、收藏会一起消失，无法恢复"

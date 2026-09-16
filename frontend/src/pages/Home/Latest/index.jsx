@@ -1,4 +1,4 @@
-import { useArticles } from '@/hooks/useArticles';
+import { useArticles, pinnedFirst } from '@/hooks/useArticles';
 import ArticleCard from '@/components/ArticleCard';
 import { Listy } from 'antd';
 import { useMemo } from 'react';
@@ -7,7 +7,9 @@ const Latest = () => {
 
     const articles = useArticles()
     const sortedArticles = useMemo(
-        () => articles.toSorted((a, b) => new Date(b.art_pub_datetime) - new Date(a.art_pub_datetime)),
+        () => articles.toSorted((a, b) =>
+            pinnedFirst(a, b) || new Date(b.art_pub_datetime) - new Date(a.art_pub_datetime)
+        ),
         [articles]
     );
 
