@@ -87,10 +87,15 @@ const Article = () => {
 
     //发布评论
     const onSubmitComment = async () => {
-        await ArtCmtAPI(art_id,comment)
-        fetchCmt()
-        setComment('')
-        message.success('发布成功')
+        try{
+            await ArtCmtAPI(art_id,comment)
+            fetchCmt()
+            setComment('')
+            message.success('发布成功')
+        }
+       catch(e){
+        message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+       }
     }
 
     //删除评论

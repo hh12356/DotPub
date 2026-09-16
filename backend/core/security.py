@@ -1,3 +1,4 @@
+
 from core.setting import SECRET_KEY
 import jwt
 from datetime import datetime,timedelta,timezone
@@ -39,7 +40,7 @@ def get_token(data:dict):
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/login')
 
-def verify_token(token:str=Depends(oauth2_scheme)):
+async def verify_token(token:str=Depends(oauth2_scheme)):
     try:
         payload = jwt.decode(
             token,
@@ -58,12 +59,18 @@ def verify_token(token:str=Depends(oauth2_scheme)):
             detail={"msg":"登录信息无效"},
             headers={"WWW-Authenticate": "Bearer"}
         )
+    user_id = payload["user_id"]
+    if await is_muted(user_id):
+        raise HTTPException(
+            status_code=400,
+            detail={"msg":"该账号无权限"}
+        )
     return payload
 
 oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl='/login',auto_error=False)
 
 def optional_user(token: str | None = Depends(oauth2_scheme_optional)):
-    """返回 token 的 payload；匿名或 token 无效时返回 None——永不抛 401。"""
+    #支持匿名请求
     if not token:
         return None
     try:
@@ -77,7 +84,11 @@ def optional_user(token: str | None = Depends(oauth2_scheme_optional)):
 async def is_admin(user_id: int) -> bool:
     return await UserAccount.filter(user_id=user_id, user_role="admin").exists()
 
+async def is_banned(user_id: int) -> bool:
+    return await UserAccount.filter(user_id=user_id, is_banned=True).exists()
 
+async def is_muted(user_id: int) -> bool:
+    return await UserAccount.filter(user_id=user_id, is_muted=True).exists()
 
 
 

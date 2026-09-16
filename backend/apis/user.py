@@ -2,7 +2,7 @@ from typing import Annotated
 
 from tortoise.functions import Count
 
-from core.security import verify_token,optional_user
+from core.security import verify_token, optional_user, is_admin, is_banned
 
 from fastapi import APIRouter,HTTPException
 from fastapi.params import Depends
@@ -178,7 +178,10 @@ async def get_user_profile(tar_id:int,user:Annotated[dict | None , Depends(optio
                         "is_starred": a.art_id in starred_ids,
                     }
                     for a in articles
-                ]
+                ],
+                "can_ban":await is_admin(user_id),
+                "is_banned":tar_user.is_banned,
+                "is_muted":tar_user.is_muted,
             }
         }
 
@@ -191,7 +194,42 @@ async def edit_user_bio(bio_data:BioIn,token_data: Annotated[dict, Depends(verif
     await UserAccount.filter(user_id=token_data["user_id"]).update(user_bio=bio_data.user_bio)
     return {"code": 200, "msg": "修改成功"}
 
+class BanIn(BaseModel):
+    status:bool
 
+#封号请求
+@user_api.put('/ban/{ban_id}')
+async def ban_user(ban_id,token_data: Annotated[dict, Depends(verify_token)],is_banned:BanIn):
+    if await is_admin(token_data["user_id"]):
+        await UserAccount.filter(user_id=ban_id).update(is_banned=is_banned.status)
+        if is_banned.status : return {"code": 200, "msg": "封号成功"}
+        return {"code": 200, "msg": "解封成功"}
+    if ban_id==token_data["user_id"]:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": 400, "msg": "不能封禁自己"}
+        )
+    raise HTTPException(
+        status_code=403,
+        detail={"code": 403, "msg": "权限不足"}
+    )
+
+#禁言/取消禁言请求
+@user_api.put('/mute/{mute_id}')
+async def mute_user(mute_id,token_data: Annotated[dict, Depends(verify_token)],is_muted:BanIn):
+    if await is_admin(token_data["user_id"]):
+        await UserAccount.filter(user_id=mute_id).update(is_muted=is_muted.status)
+        if is_muted.status: return {"code": 200, "msg": "禁言成功"}
+        return {"code": 200, "msg": "解除禁言成功"}
+    if mute_id==token_data["user_id"]:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": 400, "msg": "不能封禁自己"}
+        )
+    raise HTTPException(
+        status_code=403,
+        detail={"code": 403, "msg": "权限不足"}
+    )
 
 
 

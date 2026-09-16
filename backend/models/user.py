@@ -12,6 +12,10 @@ class UserAccount(Model):
     #字符串：admin user 后续还可加
     user_role = fields.CharField(max_length=32,description="用户权限",default="user")
 
+    #拉黑功能：封号和禁言
+    is_banned = fields.BooleanField(default=False,description="封号")
+    is_muted = fields.BooleanField(default=False,description="禁言")
+
     articles = fields.ReverseRelation["Article"]
 
 

@@ -1,7 +1,7 @@
-import { UserProfileAPI,UpdateBioAPI } from "@/apis/user"
+import { UserProfileAPI,UpdateBioAPI,BanUserAPI,SilenceUserAPI } from "@/apis/user"
 import ArticleCard from "@/components/ArticleCard"
 import { EditOutlined } from "@ant-design/icons"
-import { Flex, Input, Result, Statistic, Typography,Listy, message } from "antd"
+import { Button, Flex, Input, Popconfirm, Result, Statistic, Typography,Listy, message } from "antd"
 import { useEffect, useState,useMemo } from "react"
 import { useParams } from "react-router-dom"
 
@@ -59,8 +59,37 @@ const Profile = () => {
             setData({ ...data, user_bio: draft })   //本地先更新，省一次重新拉接口
             setEditing(false)
             message.success("编辑成功")
-        } catch {
-            //保存失败就留在编辑态：草稿不丢，可以直接重试
+        } 
+        catch (e) {
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+
+    //封号/解封，next 是目标状态（true=封，false=解封）
+    const onBan = async (next) => {
+        try {
+            const res = await BanUserAPI(id, next)
+            setData({ ...data, is_banned: next })
+            message.success(res.msg)
+        } catch (e) {
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
+        }
+    }
+
+    //禁言/解除禁言，next 是目标状态（true=禁言，false=解除）
+    const onSilence = async (next) => {
+        try {
+            const res = await SilenceUserAPI(id, next)
+            setData({ ...data, is_muted: next })
+            message.success(res.msg)
+        } catch (e) {
+            if(e.response?.status !== 401){
+                message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+            }
         }
     }
 
@@ -77,8 +106,8 @@ const Profile = () => {
                             placeholder="介绍一下自己吧"
                             value={draft}
                             onChange={e => setDraft(e.target.value)}
-                            onBlur={onSave}   //点别处就保存
-                            style={{ flex: 1 }}   //撑满整行，跟简介、统计、文章列表同宽
+                            onBlur={onSave}  
+                            style={{ flex: 1 }}   
                           />
                         : <>
                             {/*pre-wrap 必须加：HTML 默认把换行符当空格折叠掉，
@@ -94,6 +123,28 @@ const Profile = () => {
                 <Typography.Text type="secondary" style={{ fontSize: 13 }}>
                     {data.user_join_date?.slice(0, 10)} 加入DotPub
                 </Typography.Text>
+
+                {/* 拉黑操作：只有管理员看得到，且不能操作自己（封了自己就登不进来了） */}
+                {data.can_ban && !data.self && (
+                    <Flex gap={8} style={{ marginTop: 12 }}>
+                        <Popconfirm
+                            title={data.is_banned ? '确定解封该用户？' : '确定封号？封号后该用户无法登录'}
+                            onConfirm={() => onBan(!data.is_banned)}
+                        >
+                            <Button danger size="small">
+                                {data.is_banned ? '解封' : '封号'}
+                            </Button>
+                        </Popconfirm>
+                        <Popconfirm
+                            title={data.is_muted ? '确定解除禁言？' : '确定禁言？禁言后该用户无法进行需要登录的操作'}
+                            onConfirm={() => onSilence(!data.is_muted)}
+                        >
+                            <Button danger size="small">
+                                {data.is_muted ? '解除禁言' : '禁言'}
+                            </Button>
+                        </Popconfirm>
+                    </Flex>
+                )}
 
                 <Flex justify="space-around" style={{ marginTop: 32 }}>
                     <Statistic title="发表文章" value={data.art_count} />

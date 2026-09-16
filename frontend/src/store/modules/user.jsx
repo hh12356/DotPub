@@ -35,6 +35,7 @@ const fetchLogin = (userData)=>{
         dispatch(setUserName(res.data.user_name))
         _setToken(res.data.token)
         _setUserName(res.data.user_name)
+        return res
     }
 }
 

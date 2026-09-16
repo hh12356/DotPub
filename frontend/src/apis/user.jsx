@@ -41,3 +41,21 @@ export function UserStarsAPI(){
         method:'GET'
     })
 }
+
+//封号/解封请求，value 传目标状态：true=封号 false=解封
+export function BanUserAPI(id,value){
+    return request({
+        url:`/ban/${id}`,
+        method:'PUT',
+        data:{status:value}
+    })
+}
+
+//禁言/解除禁言请求，value 传目标状态：true=禁言 false=解除
+export function SilenceUserAPI(id,value){
+    return request({
+        url:`/mute/${id}`,
+        method:'PUT',
+        data:{status:value}
+    })
+}

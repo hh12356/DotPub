@@ -10,8 +10,8 @@ const Login = ()=>{
     const dispatch = useDispatch()
     const onFinish = async (values)=>{
         try{
-            await dispatch(fetchLogin(values))
-            message.success('登录成功')
+            const res = await dispatch(fetchLogin(values))
+            message.success(res.msg)
             navigate('/')
         }
         catch(e){
