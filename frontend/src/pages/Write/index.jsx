@@ -2,13 +2,40 @@ import { Button, Form, Input, message } from 'antd';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
 import './index.scss';
-import { ArtSubmitAPI } from '@/apis/article';
-import { useNavigate } from 'react-router-dom';
+import { ArtEditAPI, ArtGetAPI, ArtSubmitAPI } from '@/apis/article';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getToken, removeToken } from '@/utils/token';
 import { removeUserName } from '@/utils/userName';
 import { useEffect, useState } from 'react';
+import { useForm } from 'antd/es/form/Form';
 
 const Write = () => {
+    const params = useParams()
+    const {id} = params
+
+    const [form] = useForm()
+
+    //有id时拉取文章
+    useEffect(()=>{
+        const fetchArt = async ()=>{
+            if (!id) return
+            try{
+                const res = await ArtGetAPI(id)
+                const art_data = res.data
+                form.setFieldsValue({ 
+                    art_title: art_data.art_title, 
+                    art_content: art_data.art_content
+                })
+            }
+            catch(e){
+                if(e.response?.status !== 401){
+                    message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
+                }
+            }
+        }
+        fetchArt()
+    },[id])
+
     const navigate = useNavigate()
 
     // Quill 的空内容是 <p><br></p> 而不是空串，required 规则抓不到；纯图片也算有内容
@@ -24,12 +51,21 @@ const Write = () => {
             }
             //提交至后端
             try{
-                await ArtSubmitAPI(values)
-                message.success('上传成功')
+                if(id){
+                    //编辑接口
+                    await ArtEditAPI(id,values)
+                    message.success('编辑成功')
+                }
+                else{
+                    //提交接口
+                    await ArtSubmitAPI(values)
+                    message.success('上传成功')
+                }
                 navigate('/')
                 //缺少高亮切换
             }
             catch(e){
+                if(!e.response) throw e//抛出前端错误
                 message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
             }
         }
@@ -43,16 +79,25 @@ const Write = () => {
     return (
         <div id="write-container">
             <div id='blank'></div>
-            <Form onFinish={onFinish}>
+            <Form onFinish={onFinish} form={form}>
                 <Form.Item
                     name="art_title"
                     rules={[{ required: !notLogin, message: '请输入标题' }]}
                 >
-                    <Input variant="filled" placeholder={notLogin?"未登录":'标题'} disabled={notLogin} size='large'/>
+                    <Input 
+                    variant="filled" 
+                    placeholder={notLogin?"未登录":'标题'} 
+                    disabled={notLogin} 
+                    size='large'
+                    />
                 </Form.Item>
 
                 <Form.Item name="art_content" className="editor-item">
-                    <ReactQuill theme="snow" placeholder={notLogin?'未登录':"正文"} readOnly={notLogin}/>
+                    <ReactQuill 
+                    theme="snow" 
+                    placeholder={notLogin?'未登录':"正文"} 
+                    readOnly={notLogin}
+                    />
                 </Form.Item>
 
                 <Form.Item>

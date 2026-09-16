@@ -60,10 +60,16 @@ async def verify_token(token:str=Depends(oauth2_scheme)):
             headers={"WWW-Authenticate": "Bearer"}
         )
     user_id = payload["user_id"]
+    #是否被禁言/封号
     if await is_muted(user_id):
         raise HTTPException(
-            status_code=400,
+            status_code=403,
             detail={"msg":"该账号无权限"}
+        )
+    if await is_banned(user_id):
+        raise HTTPException(
+            status_code=403,
+            detail={"msg":"该账号已被封禁"}
         )
     return payload
 

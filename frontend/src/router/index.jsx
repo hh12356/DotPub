@@ -39,6 +39,10 @@ const router = createBrowserRouter([
                 element:<Write/>
             },
             {
+                path:'/write/:id',
+                element:<Write/>
+            },
+            {
                 //使用useParams读取id，拿到的永远是字符串，用Number()转换
                 path:'/article/:id',
                 element:<Article/>

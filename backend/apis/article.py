@@ -50,7 +50,7 @@ def clean_html(html: str) -> str:
 
 
 class SubmitData(BaseModel):
-    art_title:str
+    art_title:str=Field(min_length=1,max_length=100)
     art_content:str
 
 #上传文章
@@ -67,6 +67,26 @@ async def submit_article(article_data:SubmitData,token_data:Annotated[dict,Depen
     return {
         "code": 200,
         "msg": "发布成功",
+        "data": article
+    }
+
+#修改文章
+@article_api.put("/article/{art_id}")
+async def edit_article(art_id,article_data:SubmitData,token_data:Annotated[dict,Depends(verify_token)]):
+    user_id=token_data["user_id"]
+    article = await Article.get_or_none(art_id=art_id)
+
+    #身份检验
+    if not article or (article.art_author_id != user_id and not await is_admin(user_id)):
+        raise HTTPException(status_code=404,detail={"msg":"只能修改自己的文章"})
+
+    article.art_title=article_data.art_title
+    article.art_content=clean_html(article_data.art_content)
+    await article.save()
+
+    return {
+        "code": 200,
+        "msg": "修改成功",
         "data": article
     }
 
@@ -126,7 +146,11 @@ async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
 #获取对应id文章
 @article_api.get("/article/{art_id}")
 async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_user)]):
-    article = await Article.get(art_id=art_id).select_related("art_author")
+    article = await Article.get_or_none(art_id=art_id).select_related("art_author")
+    #文章存在校验
+    if not article:
+        raise HTTPException(status_code=404, detail={"code": 404, "msg": "文章不存在"})
+
     like_count = await ArticleLike.filter(art_id=art_id).count()
     star_count = await ArticleStar.filter(art_id=art_id).count()
     comment_count = await Comment.filter(cmt_art_id=art_id).count()
@@ -202,6 +226,9 @@ async def search_article(value:str,user:Annotated[dict | None , Depends(optional
 @article_api.get("/like/{art_id}")
 async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id=token_data["user_id"]
+    if not await Article.exists(art_id=art_id):
+        raise HTTPException(status_code=404, detail={"msg": "文章不存在"})
+
     try:
         await ArticleLike.create(user_id=user_id,art_id=art_id)
         return {"code": 200, "msg": "点赞成功"}
@@ -221,6 +248,9 @@ async def cancel_like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
 @article_api.get("/star/{art_id}")
 async def like(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id=token_data["user_id"]
+    if not await Article.exists(art_id=art_id):
+        raise HTTPException(status_code=404, detail={"msg": "文章不存在"})
+
     try:
         await ArticleStar.create(user_id=user_id,art_id=art_id)
         return {"code": 200, "msg": "收藏成功"}

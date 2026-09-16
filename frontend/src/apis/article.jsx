@@ -25,6 +25,15 @@ export function ArtGetAPI(id){
     })
 }
 
+//获编辑文章请求
+export function ArtEditAPI(id,ArtDate){
+    return request({
+        url:`/article/${id}`,
+        method:'PUT',
+        data:ArtDate
+    })
+}
+
 //删除文章请求
 export function ArtDelAPI(id){
     return request({

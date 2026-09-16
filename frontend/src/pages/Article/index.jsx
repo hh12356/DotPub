@@ -1,6 +1,6 @@
 import { ArtGetAPI, ArtLikeAPI, ArtUnlikeAPI,ArtStarAPI,ArtUnStarAPI, ArtDelAPI, ArtCmtAPI, ArtGetCmtAPI, ArtDelCmtAPI } from '@/apis/article';
-import { DeleteOutlined, HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
-import { Button, Empty, Input, Listy, message, Popconfirm, Typography } from 'antd';
+import { DeleteOutlined, EditOutlined, HeartOutlined, StarOutlined,HeartFilled,StarFilled } from '@ant-design/icons';
+import { Button, Empty, Input, Listy, message, Popconfirm, Typography,Result } from 'antd';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -18,10 +18,17 @@ const Article = () => {
     //comment 是输入框里的草稿，comments 是列表数据（等接口）
     const [comment, setComment] = useState('');
     const [comments, setComments] = useState([]);
+    const [error,setError] = useState(null)
 
     const fetchArticle =useCallback(async () => {
-        const res = await ArtGetAPI(art_id);
-        setArticle(res.data);
+        try{
+            setError(null)
+            const res = await ArtGetAPI(art_id);
+            setArticle(res.data);
+        }
+        catch(e){
+            setError(e.response?.status === 404 ? '404' : '500')
+        }
     },[art_id]) 
 
     useEffect(() => {
@@ -60,6 +67,11 @@ const Article = () => {
                 message.error(e.response?.data?.detail?.msg||"请求失败，请稍后重试")
             }
         }
+    }
+
+    //编辑文章
+    const onEditArticle = () => {
+        navigate(`/write/${art_id}`)
     }
 
     //删除文章
@@ -116,6 +128,15 @@ const Article = () => {
         navigate(`/profile/${article.art_author_id}`)
     }
 
+    //404处理
+    if (error) return (
+        <Result
+            status="error"
+            title={error === '404' ? '文章不存在' : '服务器出错了'}
+            style={{ marginTop: 80 }}
+        />
+    )
+
     return (
         <article id="article-page">
             <Typography.Title level={1}>{article.art_title}</Typography.Title>
@@ -142,15 +163,19 @@ const Article = () => {
                 <Button icon={article.is_starred?<StarFilled />:<StarOutlined />} onClick={OnClickStar}>收藏 {article.star_count ?? 0}</Button>
                 
                 {article.can_delete && (
-                    <Popconfirm
-                        title="确定删除这篇文章吗？"
-                        description="评论、点赞、收藏会一起消失，无法恢复"
-                        okText="删除"
-                        cancelText="取消"
-                        onConfirm={OnDeleteArticle}
-                    >
-                        <Button danger icon={<DeleteOutlined />} style={{ marginLeft: 'auto' }}>删除</Button>
-                    </Popconfirm>
+                    <>
+                        {/*marginLeft:auto 挂在组里第一个上，把编辑+删除一起推到最右边*/}
+                        <Button icon={<EditOutlined />} onClick={onEditArticle} style={{ marginLeft: 'auto' }}>编辑</Button>
+                        <Popconfirm
+                            title="确定删除这篇文章吗？"
+                            description="评论、点赞、收藏会一起消失，无法恢复"
+                            okText="删除"
+                            cancelText="取消"
+                            onConfirm={OnDeleteArticle}
+                        >
+                            <Button danger icon={<DeleteOutlined />}>删除</Button>
+                        </Popconfirm>
+                    </>
                 )}
             </div>
 

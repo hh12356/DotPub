@@ -1,5 +1,6 @@
 from fastapi import APIRouter,HTTPException
 from pydantic import BaseModel,Field
+from tortoise.exceptions import IntegrityError
 
 from core.security import get_token, hash_pwd
 from models.user import *
@@ -14,35 +15,21 @@ class SignUpData(BaseModel):
 
 @sign_up_api.post("/signup")
 async def verify_user_info(sign_up_data:SignUpData):
-    exist_phone=await UserAccount.filter(user_phone=sign_up_data.user_phone)
-    if not exist_phone:
-        exist_name = await UserAccount.filter(user_name=sign_up_data.user_name)
-        if not exist_name:
-            user = await UserAccount.create(
-                user_name=sign_up_data.user_name,
-                user_pwd=hash_pwd(sign_up_data.user_pwd),
-                user_phone=sign_up_data.user_phone
-            )
-            return {
-                "code": 200,
-                "msg": "注册成功",
-                "data": {
-                    "user_id": user.user_id,
-                    "user_name": user.user_name,
-                    "token":get_token({"user_id": user.user_id})
-                }
-            }
-        raise HTTPException(
-            status_code=400,
-            detail={
-                "code":400,
-                "msg":"该用户名已被占用"
-            }
+    try:
+        #有unique关键字，有重复项会直接catch
+        user = await UserAccount.create(
+            user_name=sign_up_data.user_name,
+            user_pwd=hash_pwd(sign_up_data.user_pwd),
+            user_phone=sign_up_data.user_phone
         )
-    raise HTTPException(
-        status_code=400,
-        detail={
-            "code": 400,
-            "msg": "该手机号已注册"
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail={"code": 400, "msg": "用户名或手机号已被占用"})
+    return {
+        "code": 200,
+        "msg": "注册成功",
+        "data": {
+            "user_id": user.user_id,
+            "user_name": user.user_name,
+            "token": get_token({"user_id": user.user_id})
         }
-    )
+    }
