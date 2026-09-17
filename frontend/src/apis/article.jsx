@@ -10,10 +10,11 @@ export function ArtSubmitAPI(ArtData){
 }
 
 //获取所有文章请求
-export function ArtGetAllAPI(){
+export function ArtGetAllAPI(params){
     return request({
         url:'/article',
-        method:'GET'
+        method:'GET',
+        params
     })
 }
 

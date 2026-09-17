@@ -1,14 +1,10 @@
 import { Card, Input,Listy, Empty } from 'antd';
 import './index.scss';
 import { useNavigate,  useSearchParams } from 'react-router-dom';
-import { useEffect, useState,useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { ArtSrchAPI } from '@/apis/article';
 import ArticleCard from '@/components/ArticleCard';
 import { useArticles } from '@/hooks/useArticles';
-
-const FRESH_WINDOW = 90 * 24 * 3600
-const JITTER = 0.3
-const vote = (a) => 0.4 * (a.like_count ?? 0) + 0.6 * (a.star_count ?? 0)
 
 const Search = () => {
 
@@ -23,19 +19,8 @@ const Search = () => {
     const [article,setArticle] = useState([])
 
     
-    const latest = useArticles()
-    const sortedArticles = useMemo(() => {
-            const now = Date.now() / 1000
-            return latest
-                .map((a) => ({
-                    a,
-                    score: Math.log10(Math.max(vote(a), 1))
-                        - (now - Date.parse(a.art_pub_datetime) / 1000) / FRESH_WINDOW
-                        + (Math.random() * 2 - 1) * JITTER,
-                }))
-                .sort((x, y) => y.score - x.score)
-                .map(({ a }) => a)
-        }, [latest]);
+    //没搜索词时的兜底列表
+    const { articles: latest } = useArticles('hot')
 
     useEffect(()=>{
         if(!q) return
@@ -48,9 +33,9 @@ const Search = () => {
         }
         fetchSrch()
         return ()=>{ cancelled = true }
-    },[q,sortedArticles])
+    },[q])
 
-    const list = q?article:sortedArticles
+    const list = q?article:latest
 
     return (
         <div id='search'>

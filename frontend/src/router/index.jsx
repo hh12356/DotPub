@@ -3,7 +3,7 @@ import Layout from "@/pages/Layout"
 import Login from "../pages/Login"
 import Signup from "../pages/Signup"
 import Write from "@/pages/Write"
-import { Greatest,Latest,Hottest } from '@/pages/Home'
+import Home from '@/pages/Home'
 import {createBrowserRouter} from 'react-router-dom'
 import Article from "@/pages/Article"
 import Search from "@/pages/Search"
@@ -20,19 +20,19 @@ const router = createBrowserRouter([
         children:[
             {
                 path:'/',
-                element:<Hottest/>
+                element:<Home sort="hot"/>
             },
             {
                 path:'/home/hottest',
-                element:<Hottest/>
+                element:<Home sort="hot"/>
             },
             {
                 path:'/home/latest',
-                element:<Latest/>
+                element:<Home sort="latest"/>
             },
             {
                 path:'/home/greatest',
-                element:<Greatest/>
+                element:<Home sort="greatest"/>
             },
             {
                 path:'/write',

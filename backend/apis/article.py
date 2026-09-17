@@ -1,12 +1,8 @@
-from typing import Annotated
-
 from tortoise.functions import Count
-from watchfiles import awatch
 
 from core.security import verify_token, optional_user, is_admin
 
 import nh3
-from fastapi import APIRouter,HTTPException
 from fastapi.params import Depends
 from pydantic import BaseModel, Field
 from tortoise.exceptions import IntegrityError
@@ -14,6 +10,11 @@ from tortoise.exceptions import IntegrityError
 from models.article import *
 from models.interaction import *
 from models.comment import *
+
+from typing import Annotated, Literal
+from fastapi import APIRouter, HTTPException, Query
+from tortoise.expressions import RawSQL
+import re
 
 article_api = APIRouter()
 
@@ -107,14 +108,51 @@ async def delete_article(art_id,token_data:Annotated[dict,Depends(verify_token)]
     return {"code": 200, "msg": "删除成功"}
 
 #获取所有文章
+def first_line(html: str) -> str:
+    with_breaks = re.sub(r"</(?:p|div|li|h[1-6])>|<br\s*/?>", "\n", html or "", flags=re.I)
+    # 交给 nh3 剥标签：它是真解析器，实体（&nbsp; &amp;）也会自动解码
+    text = nh3.clean(with_breaks, tags=set())
+    return next((s.strip() for s in text.split("\n") if s.strip()), "")
+
+FRESH_WINDOW = 90 * 24 * 3600
 @article_api.get("/article")
-async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
-    articles = await Article.annotate(
-        like_count=Count("like_records",distinct=True),
-        star_count=Count("star_records",distinct=True),
-        comment_count=Count("comments",distinct=True)
+async def get_all_article(
+        user:Annotated[dict | None , Depends(optional_user)],
+        page:int=Query(1,ge=1),
+        size:int=Query(8,ge=1,le=100),
+        sort:Literal["latest", "hot", "greatest"] = "latest"
+):
+    #准备数据
+    like = Count("like_records", distinct=True)
+    star = Count("star_records", distinct=True)
+    cmt = Count("comments", distinct=True)
+
+    qs = Article.annotate(
+        like_count=like,
+        star_count=star,
+        comment_count=cmt,
     ).select_related("art_author")
-    #Queryset : [Student(),Student(),Student(),...]
+
+    if sort == "greatest":
+        qs = qs.annotate(score=like * 0.4 + star * 0.6)
+        order = "-score"
+    elif sort == "hot":
+        qs = qs.annotate(score=RawSQL(
+            "LOG10(GREATEST("
+            "0.25 * (SELECT COUNT(*) FROM `articlelike`"
+            "        WHERE `articlelike`.`art_id` = `article`.`art_id`)"
+            " + 0.35 * (SELECT COUNT(*) FROM `comment`"
+            "        WHERE `comment`.`cmt_art_id` = `article`.`art_id`)"
+            " + 0.4 * (SELECT COUNT(*) FROM `articlestar`"
+            "        WHERE `articlestar`.`art_id` = `article`.`art_id`)"
+            f", 1)) - TIMESTAMPDIFF(SECOND, `article`.`art_pub_datetime`, NOW()) / {FRESH_WINDOW}"
+            " + (MOD(`article`.`art_id` * 2654435761, 1000) / 1000.0 - 0.5) * 0.6"
+        ))
+        order = "-score"
+    else:
+        order = "-art_pub_datetime"
+
+    articles = await qs.order_by("-is_pinned", order).offset((page - 1) * size).limit(size)
 
     #获取当前用户点赞收藏信息
     liked_ids, starred_ids = set(), set()
@@ -130,9 +168,11 @@ async def get_all_article(user:Annotated[dict | None , Depends(optional_user)]):
     return {
         "code": 200,
         "msg": "获取成功",
+        "has_more": len(articles) == size,  # 新增：前端靠它判断要不要继续加载
         "data": [
             {
                 **dict(a),
+                "art_content":first_line(a.art_content),
                 "art_author": a.art_author.user_name,
                 "like_count": a.like_count,
                 "star_count": a.star_count,
@@ -212,6 +252,8 @@ async def search_article(value:str,user:Annotated[dict | None , Depends(optional
         "data": [
             {
                 **dict(a),
+                # 和 /article 一样只给摘要：搜索页也是列表，也用 ArticleCard
+                "art_content": first_line(a.art_content),
                 "art_author": a.art_author.user_name,
                 "like_count": a.like_count,
                 "star_count": a.star_count,

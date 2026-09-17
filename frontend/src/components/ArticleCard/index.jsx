@@ -1,9 +1,8 @@
 import { HeartFilled, HeartOutlined, PushpinFilled, StarFilled, StarOutlined } from '@ant-design/icons';
 import { Card, Space, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { firstLine } from '@/utils/html_process';
 
-// Hottest / Latest / Greatest 三个列表共用这一张卡片，
+// 首页三个 tab 和搜索页共用这一张卡片，
 // 样式和字段以后只改这里一处
 const ArticleCard = ({ article }) => {
     const navigate = useNavigate();
@@ -30,7 +29,8 @@ const ArticleCard = ({ article }) => {
                 {article.art_author}
             </Typography.Paragraph>
             <Typography.Paragraph ellipsis={{ rows: 1 }}>
-                {firstLine(article.art_content)}
+                {/* 后端列表接口给的已经是纯文本摘要，不用在前端再剥标签 */}
+                {article.art_content}
             </Typography.Paragraph>
 
             <Space size={16} style={{ fontSize: 13, color: 'rgba(0, 0, 0, 0.45)' }}>
