@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 import uvicorn
-from fastapi.middleware.cors import CORSMiddleware
 
 from tortoise.contrib.fastapi import register_tortoise
 
@@ -17,14 +16,6 @@ app.include_router(login_api,tags=["登录模块"])
 app.include_router(sign_up_api,tags=["注册模块"])
 app.include_router(article_api,tags=["文章模块"])
 app.include_router(user_api,tags=["用户模块"])
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 register_tortoise(
     app=app,

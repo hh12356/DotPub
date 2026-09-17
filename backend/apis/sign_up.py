@@ -5,7 +5,7 @@ from tortoise.exceptions import IntegrityError
 from core.security import get_token, hash_pwd
 from models.user import *
 
-sign_up_api = APIRouter()
+sign_up_api = APIRouter(prefix="/api")
 
 class SignUpData(BaseModel):
     #手机号由前端校验

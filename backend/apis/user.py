@@ -13,7 +13,7 @@ from models.article import *
 from models.interaction import *
 from models.user import UserAccount
 
-user_api = APIRouter()
+user_api = APIRouter(prefix="/api")
 
 #获取用户文章
 @user_api.get('/userart')

@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from core.security import get_token, verify_pwd, is_banned, is_muted
 from models.user import *
 
-login_api = APIRouter()
+login_api = APIRouter(prefix="/api")
 
 class LoginData(BaseModel):
     user_name:str

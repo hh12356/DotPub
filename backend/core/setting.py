@@ -27,15 +27,15 @@ TORTOISE_ORM = {
             'engine': 'tortoise.backends.mysql',  # MySQL or Mariadb
             'credentials': {
                 'host': '127.0.0.1',
-                'port': '3306',
-                'user': 'root',
+                'port': 3306,
+                'user': os.environ.get("DB_USER", "root"),
                 # 和 SECRET_KEY 同样的道理：这两个值不能进仓库
                 'password': os.environ["DB_PASSWORD"],
                 'database': 'DotPub',
                 'minsize': 1,
                 'maxsize': 5,
                 'charset': 'utf8mb4',
-                "echo": True
+                "echo": False
             }
         },
     },

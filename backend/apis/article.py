@@ -16,7 +16,7 @@ from fastapi import APIRouter, HTTPException, Query
 from tortoise.expressions import RawSQL
 import re
 
-article_api = APIRouter()
+article_api = APIRouter(prefix="/api")
 
 # ---------- 正文 HTML 清洗 ----------
 # 接口是唯一的信任边界：前端那些校验（isEmptyHtml、required）都跑在

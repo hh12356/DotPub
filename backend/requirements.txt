@@ -1,0 +1,18 @@
+# DotPub 后端依赖
+# 只列直接依赖，传递依赖（starlette / pydantic / pypika-tortoise / iso8601 等）
+# 交给 pip 自己解析。本地 pip freeze 混了无关的全局包，不能直接用。
+#
+# 安装：pip install -r requirements.txt
+
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+tortoise-orm==1.1.8
+aiomysql==0.3.2
+aerich==0.10.1
+PyJWT==2.13.0
+argon2-cffi==25.1.0
+nh3==0.3.7
+
+# MySQL 8 默认用 caching_sha2_password 认证，aiomysql 走 PyMySQL，
+# 解这个认证要靠 cryptography。缺了会报 "Authentication plugin cannot be loaded"。
+cryptography==50.0.1
