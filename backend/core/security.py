@@ -90,6 +90,11 @@ def optional_user(token: str | None = Depends(oauth2_scheme_optional)):
 async def is_admin(user_id: int) -> bool:
     return await UserAccount.filter(user_id=user_id, user_role="admin").exists()
 
+
+def can_manage(owner_id: int, viewer_id: int, viewer_is_admin: bool) -> bool:
+    #owner 本人或管理员
+    return owner_id == viewer_id or viewer_is_admin
+
 async def is_banned(user_id: int) -> bool:
     return await UserAccount.filter(user_id=user_id, is_banned=True).exists()
 

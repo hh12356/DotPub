@@ -1,6 +1,6 @@
 from tortoise.functions import Count
 
-from core.security import verify_token, optional_user, is_admin
+from core.security import verify_token, optional_user, is_admin, can_manage
 
 import nh3
 from fastapi.params import Depends
@@ -79,7 +79,7 @@ async def edit_article(art_id,article_data:SubmitData,token_data:Annotated[dict,
     article = await Article.get_or_none(art_id=art_id)
 
     #身份检验
-    if not article or (article.art_author_id != user_id and not await is_admin(user_id)):
+    if not article or not can_manage(article.art_author_id, user_id, await is_admin(user_id)):
         raise HTTPException(status_code=404,detail={"msg":"只能修改自己的文章"})
 
     article.art_title=article_data.art_title
@@ -97,13 +97,12 @@ async def edit_article(art_id,article_data:SubmitData,token_data:Annotated[dict,
 async def delete_article(art_id,token_data:Annotated[dict,Depends(verify_token)]):
     user_id = token_data["user_id"]
     article = await Article.get_or_none(art_id=art_id)
-    if not article or (
-            article.art_author_id != user_id and not await is_admin(user_id)
-    ):
+    if not article or not can_manage(article.art_author_id, user_id, await is_admin(user_id)):
         raise HTTPException(
             status_code=403,
             detail={"code": 403, "msg": "只能删除自己的文章"}
         )
+
     await article.delete()
     return {"code": 200, "msg": "删除成功"}
 
@@ -201,8 +200,8 @@ async def get_article(art_id:int,user:Annotated[dict | None , Depends(optional_u
         is_liked = await ArticleLike.filter(user_id=user["user_id"], art_id=art_id).exists()
         is_starred = await ArticleStar.filter(user_id=user["user_id"], art_id=art_id).exists()
 
-    can_delete = bool(user) and (
-        article.art_author_id == user["user_id"] or await is_admin(user["user_id"])
+    can_delete = bool(user) and can_manage(
+        article.art_author_id, user["user_id"], await is_admin(user["user_id"])
     )
     can_pin = bool(user) and await is_admin(user["user_id"])
 
@@ -333,7 +332,9 @@ async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)
                 "cmt_user_id":c.cmt_user_id,
                 "cmt_content":c.cmt_content,
                 "cmt_pub_datetime":c.cmt_pub_datetime,
-                "can_delete":bool(user) and (c.cmt_user_id == user["user_id"] or viewer_is_admin),
+                "can_delete": bool(user) and can_manage(
+                    c.cmt_user_id, user["user_id"], viewer_is_admin
+                ),
             }
             for c in comments
         ]
@@ -344,9 +345,7 @@ async def get_comment(art_id,user:Annotated[dict | None , Depends(optional_user)
 async def delete_comment(cmt_id:int,token_data:Annotated[dict,Depends(verify_token)]):
     user_id = token_data["user_id"]
     comment = await Comment.get_or_none(cmt_id=cmt_id)
-    if not comment or (
-            comment.cmt_user_id != user_id and not await is_admin(user_id)
-    ):
+    if not comment or not can_manage(comment.cmt_user_id, user_id, await is_admin(user_id)):
         raise HTTPException(
             status_code=403,
             detail={"code": 403, "msg": "只能删除自己的评论"}
