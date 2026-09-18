@@ -12,6 +12,7 @@ import Stars from "@/pages/User/Stars"
 import Profile from "@/pages/User/Profile"
 import UserArt from "@/pages/User/UserArt"
 import Admin from "@/pages/Admin"
+import RequireAdmin from "@/router/RequireAdmin"
 
 //配置路由实例
 const router = createBrowserRouter([
@@ -70,7 +71,7 @@ const router = createBrowserRouter([
             },
             {
                 path:'/admin',
-                element:<Admin/>
+                element:<RequireAdmin><Admin/></RequireAdmin>
             },
         ]
     },
