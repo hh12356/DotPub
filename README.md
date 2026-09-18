@@ -1,13 +1,12 @@
 # DotPub
 
-一个多角色的技术文章社区：任何人都能注册发文、评论、点赞收藏；管理员可以处置任意内容与用户，并在数据看板上看到全站趋势。
+一个技术文章社区,我们称其为小黑书
 
-> 🔗 在线体验：`（待填线上地址）`
-> 数据库里已有 12 篇技术文章和一批互动记录作演示数据。
+🔗 在线体验：http://47.122.126.63/
 
-<!-- 截图（建议放 3 张，横排）：
-     1. 首页文章流  2. 文章详情 + 富文本正文  3. /admin 数据看板
--->
+<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/031918cc-5177-4979-97ca-6904e3523782" />
+<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/0c4fce24-de7f-4fda-bafe-e2c2b7c21af1" />
+<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/9a12d60c-8037-4234-b3ee-9142398cbc17" />
 
 ## 技术栈
 
@@ -35,6 +34,30 @@
 - `/admin` 数据看板：总量统计、近 14 天新增文章与用户趋势、点赞/收藏/评论人气榜、发文最多的用户
 
 **列表能力**：首页三路排序（最新 / 最热 / 最高分）、分页 + `has_more`、搜索、404 与 403 的错误态
+
+## 项目结构
+
+```
+DotPub/
+├── backend/
+│   ├── main.py            # FastAPI 入口，挂载 5 个路由 + 注册 Tortoise
+│   ├── apis/              # login · sign_up · article · user · admin
+│   ├── core/
+│   │   ├── security.py    # JWT、argon2、verify_token / verify_admin / can_manage
+│   │   └── setting.py     # .env 载入 + TORTOISE_ORM 配置
+│   ├── models/            # UserAccount · Article · Comment · ArticleLike · ArticleStar
+│   ├── migrations/        # Aerich 迁移 0–11
+│   ├── seeds/             # 12 篇种子文章正文（网络前端 / 后端数据库 / 安全运维）
+│   ├── tests/             # test_sanitize.py · test_stats.py（裸 assert，无框架）
+│   └── seed_articles.py   # 种子数据导入脚本（--clean 可重跑）
+└── frontend/
+    └── src/
+        ├── apis/          # 按模块封装的接口
+        ├── pages/         # Home · Article · Write · Search · Login · Signup · Layout · Admin · User/*
+        ├── hooks/         # useArticles：分页累积 + 丢弃过期响应
+        ├── store/         # Redux user 切片（sessionStorage 的镜像）
+        └── utils/         # request（axios 封装 + 401 拦截跳登录）· token
+```
 
 ## 值得一提的几处
 
@@ -84,131 +107,3 @@
 ### 6. 列表接口的 payload
 
 列表接口不返回正文 HTML，而是用 `first_line()` 把富文本转成纯文本摘要（卡片本来就是按纯文本渲染的，直接给 HTML 会把标签和 `&nbsp;` 一起显示出来）。首页、搜索、个人文章、点赞、收藏五个列表共用这一个函数。
-
-## 项目结构
-
-```
-DotPub/
-├── backend/
-│   ├── main.py            # FastAPI 入口，挂载 5 个路由 + 注册 Tortoise
-│   ├── apis/              # login · sign_up · article · user · admin
-│   ├── core/
-│   │   ├── security.py    # JWT、argon2、verify_token / verify_admin / can_manage
-│   │   └── setting.py     # .env 载入 + TORTOISE_ORM 配置
-│   ├── models/            # UserAccount · Article · Comment · ArticleLike · ArticleStar
-│   ├── migrations/        # Aerich 迁移 0–11
-│   ├── seeds/             # 12 篇种子文章正文（网络前端 / 后端数据库 / 安全运维）
-│   ├── tests/             # test_sanitize.py · test_stats.py（裸 assert，无框架）
-│   └── seed_articles.py   # 种子数据导入脚本（--clean 可重跑）
-└── frontend/
-    └── src/
-        ├── apis/          # 按模块封装的接口
-        ├── pages/         # Home · Article · Write · Search · Login · Signup · Layout · Admin · User/*
-        ├── hooks/         # useArticles：分页累积 + 丢弃过期响应
-        ├── store/         # Redux user 切片（sessionStorage 的镜像）
-        └── utils/         # request（axios 封装 + 401 拦截跳登录）· token
-```
-
-## 本地跑起来
-
-**1. 建库**
-
-```sql
-CREATE DATABASE DotPub CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
-
-**2. 起后端**（需要 Python 3.11+）
-
-```bash
-cd backend
-python -m venv .venv && .venv/Scripts/activate      # macOS/Linux: source .venv/bin/activate
-pip install -r requirements.txt
-
-cp .env.example .env                                 # 然后把两个值填上
-python -c "import secrets; print(secrets.token_hex(32))"   # 生成 JWT_SECRET_KEY
-
-python -m aerich upgrade                             # 建表
-python main.py                                       # http://127.0.0.1:8010
-```
-
-**3. 灌演示数据**（可选，需要库里已有至少 3 个账号）
-
-```bash
-python seed_articles.py            # 写入 12 篇文章 + 点赞收藏记录
-python seed_articles.py --clean    # 先删同名旧文章再写，可重复跑
-```
-
-**4. 起前端**
-
-```bash
-cd frontend
-npm install
-npm run dev            # http://localhost:5173，/api 已代理到 8010
-```
-
-**5. 造一个管理员**
-
-注册接口不开放管理员角色，直接在库里改：
-
-```sql
-UPDATE useraccount SET user_role = 'admin' WHERE user_name = '你的用户名';
-```
-
-重新登录后 Layout 的菜单里会出现「Admin」，访问 `/admin` 即是数据看板。
-
-## 接口一览
-
-所有接口以 `/api` 为前缀。成功统一返回 `{code: 200, msg, data}`（列表额外带 `has_more`）；失败走 HTTP 状态码 + `detail: {code, msg}`。
-
-| 方法 | 路径 | 权限 | 说明 |
-|---|---|---|---|
-| POST | `/signup` | 公开 | 注册（用户名/手机号唯一，密码 ≥8 位） |
-| POST | `/login` | 公开 | 登录取 JWT；被封禁的账号拒绝登录 |
-| GET | `/article` | 公开 | 文章列表，`page` / `size` / `sort=latest\|hot\|greatest` |
-| GET | `/article/{id}` | 公开 | 文章详情，含 `can_delete` / `can_pin` |
-| POST | `/article` | 登录 | 发布文章（正文入库前清洗） |
-| PUT | `/article/{id}` | 本人或管理员 | 编辑文章 |
-| DELETE | `/article/{id}` | 本人或管理员 | 删除文章 |
-| GET | `/search/{关键词}` | 公开 | 按标题模糊搜索 |
-| PUT | `/pin/{id}` | 管理员 | 置顶 / 取消置顶 |
-| GET / DELETE | `/like/{id}` | 登录 | 点赞 / 取消点赞（幂等） |
-| GET / DELETE | `/star/{id}` | 登录 | 收藏 / 取消收藏（幂等） |
-| GET | `/comment/{art_id}` | 公开 | 评论列表 |
-| PUT | `/comment/{art_id}` | 登录 | 发表评论 |
-| DELETE | `/comment/{cmt_id}` | 本人或管理员 | 删除评论 |
-| GET | `/userart` | 登录 | 我发布的文章 |
-| GET | `/likes` · `/stars` | 登录 | 我点赞 / 收藏的文章 |
-| GET | `/profile/{user_id}` | 公开 | 用户主页（发文数、获赞、被收藏） |
-| PUT | `/profile/bio` | 登录 | 修改个人简介 |
-| PUT | `/ban/{user_id}` · `/mute/{user_id}` | 管理员 | 封号 / 禁言及解除 |
-| GET | `/admin/stats` | 管理员 | 看板数据（总量、14 天趋势、三个榜单、活跃作者） |
-
-## 部署
-
-仓库本身不依赖任何绝对地址，线上按同域部署即可：
-
-- 前端 `baseURL` 是相对路径 `/api`，Nginx 把 `/api` 反代到 uvicorn（开发环境由 Vite 代理到 8010，行为一致）。
-- `.env` 不进仓库，`JWT_SECRET_KEY` / `DB_PASSWORD` 由部署平台注入环境变量。
-- 建表用 `python -m aerich upgrade`，服务由 systemd 或平台进程管理拉起 `uvicorn`。
-
-`（待填：实际的域名 / 服务器与部署命令）`
-
-## 已知问题与后续
-
-**已确认的缺陷**
-- 退出登录不彻底：`clearUserInfo` 定义了但从未 dispatch，401 拦截器也只清 token 和用户名、不清 `user_role` —— 退出后 Redux 里的登录态会残留到刷新页面为止。
-- `@ant-design/icons` 全站大量使用，但没写进 `package.json`（靠 antd 的传递依赖解析）。全新环境 `npm install` 后有装不上的风险。
-- 前端没有 404 catch-all 路由，访问未知路径会落到 react-router 的默认英文错误页。
-- `pages/User/` 下的 Likes、Stars、UserArt 三个页面几乎是逐字复制的，只差调用的接口名，应当抽成一个列表组件。
-- 首页 `useArticles` 没有 `catch`，接口失败时只有空列表和一个 unhandled rejection；两处 `console.log` 未清理。
-
-**有意为之的取舍**
-- `/admin` 没有前端路由守卫，菜单项按角色隐藏，但直接敲 URL 仍能进入页面——真正的拦截在后端（非管理员拿到 403，页面渲染「无权访问」）。前端守卫只是 UI，不是安全边界。
-- 点赞用 `GET /like/{id}` 表示创建、评论发布用 `PUT /comment/{art_id}`，语义上不 RESTful；保持现状是因为前端调用点已经铺开，改动收益低于回归风险。
-- 列表接口的 `has_more` 按「返回条数恰好等于 size」判断，最后一批正好满页时会多出一次空请求。
-
-**还没做的**
-- 发帖 / 评论的频率限制与反垃圾
-- 图片上传（现在正文插图只能填外链 URL）
-- 搜索、评论、个人页列表的分页
-- 单元测试框架（目前只有 `tests/` 下两个裸 assert 自检脚本），前端无 lint 脚本（`oxlint` 已装但没配 script）
