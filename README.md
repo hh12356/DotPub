@@ -4,10 +4,6 @@
 
 🔗 在线体验：http://47.122.126.63/
 
-<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/031918cc-5177-4979-97ca-6904e3523782" />
-<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/0c4fce24-de7f-4fda-bafe-e2c2b7c21af1" />
-<img width="320" height="220" alt="image" src="https://github.com/user-attachments/assets/9a12d60c-8037-4234-b3ee-9142398cbc17" />
-
 ## 技术栈
 
 | 层 | 选型 |
@@ -34,6 +30,9 @@
 - `/admin` 数据看板：总量统计、近 14 天新增文章与用户趋势、点赞/收藏/评论人气榜、发文最多的用户
 
 **列表能力**：首页三路排序（最新 / 最热 / 最高分）、分页 + `has_more`、搜索、404 与 403 的错误态
+
+<img width="420" height="280" alt="image" src="https://github.com/user-attachments/assets/031918cc-5177-4979-97ca-6904e3523782" />
+<img width="420" height="280" alt="image" src="https://github.com/user-attachments/assets/9a12d60c-8037-4234-b3ee-9142398cbc17" />
 
 ## 项目结构
 
