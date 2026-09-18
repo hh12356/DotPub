@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   HomeOutlined, EditOutlined, MenuOutlined, SearchOutlined,
   FireOutlined, ClockCircleOutlined, TrophyOutlined,
@@ -9,14 +9,27 @@ import {
   DashboardOutlined,
 } from '@ant-design/icons';
 import { Menu } from 'antd';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { getUserName, removeUserName } from '@/utils/userName';
 import { getUserRole, removeUserRole } from '@/utils/userRole';
 import './index.scss';
 import { removeToken, getUserId } from '@/utils/token';
 
+//路径 → 该亮哪一项
+const PATH_KEY = {
+  '/':'hottest',
+  '/home/hottest':'hottest',
+  '/home/latest':'latest',
+  '/home/greatest':'greatest',
+  '/write':'write',
+  '/search':'search',
+  '/likes':'likes',
+  '/stars':'stars',
+  '/userart':'article',
+  '/admin':'admin',
+}
+
 const Layout = () => {
-  const [current, setCurrent] = useState('mail');
   const routeMap={
     hottest: '/home/hottest',
     latest: '/home/latest',
@@ -32,9 +45,15 @@ const Layout = () => {
     admin:'/admin'
   }
   const navigate = useNavigate()
+
+  //高亮不用 state 存，从 URL 现推——刷新、前进后退、直接粘地址进来都不会错
+  const { pathname } = useLocation()
+  const current = PATH_KEY[pathname]
+    ?? (pathname.startsWith('/profile') ? 'profile'
+    :   pathname.startsWith('/write')   ? 'write'
+    :   undefined)
+
   const onClick = e => {
-    // console.log('click ', e);
-    setCurrent(e.key);
     //逻辑
     if(e.key==='exit'){
       removeToken()
@@ -44,14 +63,8 @@ const Layout = () => {
     navigate(routeMap[e.key])
   };
 
-  //设置初始Home高亮
-  useEffect(()=>{
-    setCurrent('hottest')
-  },[])
-
   //点击Home
   const onTitleClick = ()=>{
-    setCurrent("hottest")
     navigate('/')
   }
 
