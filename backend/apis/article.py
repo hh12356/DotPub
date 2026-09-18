@@ -135,7 +135,16 @@ async def get_all_article(
     ).select_related("art_author")
 
     if sort == "greatest":
-        qs = qs.annotate(score=like * 0.4 + star * 0.6)
+        # 点赞 0.4 / 收藏 0.6，和前端原来的 vote() 一致。
+        # 不能写 like * 0.4 —— Tortoise 的 Count 没实现 __mul__，会
+        # TypeError: unsupported operand type(s) for *: 'Count' and 'float'。
+        # 和 hot 一样用关联子查询自己数
+        qs = qs.annotate(score=RawSQL(
+            "0.4 * (SELECT COUNT(*) FROM `articlelike`"
+            "        WHERE `articlelike`.`art_id` = `article`.`art_id`)"
+            " + 0.6 * (SELECT COUNT(*) FROM `articlestar`"
+            "        WHERE `articlestar`.`art_id` = `article`.`art_id`)"
+        ))
         order = "-score"
     elif sort == "hot":
         qs = qs.annotate(score=RawSQL(
@@ -153,7 +162,10 @@ async def get_all_article(
     else:
         order = "-art_pub_datetime"
 
-    articles = await qs.order_by("-is_pinned", order).offset((page - 1) * size).limit(size)
+    # 末尾的 -art_id 是兜底排序键，不能省：
+    # 并列分数（比如全站都是 0 赞 0 藏）时 MySQL 不保证顺序，会退回主键升序
+    # ——最老的排最前，看着像"排序反了"；而且翻页时同一篇可能重复或漏掉。
+    articles = await qs.order_by("-is_pinned", order, "-art_id").offset((page - 1) * size).limit(size)
 
     #获取当前用户点赞收藏信息
     liked_ids, starred_ids = set(), set()
