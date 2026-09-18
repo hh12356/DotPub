@@ -6,10 +6,12 @@ import {
   HeartOutlined,
   StarOutlined,
   FileTextOutlined,
+  DashboardOutlined,
 } from '@ant-design/icons';
 import { Menu } from 'antd';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { getUserName, removeUserName } from '@/utils/userName';
+import { getUserRole, removeUserRole } from '@/utils/userRole';
 import './index.scss';
 import { removeToken, getUserId } from '@/utils/token';
 
@@ -26,7 +28,8 @@ const Layout = () => {
     search:'/search',
     likes:'/likes',
     stars:'/stars',
-    article:'/userart'
+    article:'/userart',
+    admin:'/admin'
   }
   const navigate = useNavigate()
   const onClick = e => {
@@ -36,6 +39,7 @@ const Layout = () => {
     if(e.key==='exit'){
       removeToken()
       removeUserName()
+      removeUserRole()
     }
     navigate(routeMap[e.key])
   };
@@ -96,6 +100,9 @@ const Layout = () => {
               { label: 'Article', key: 'article', icon: <FileTextOutlined /> },
               { label: 'Likes', key: 'likes', icon: <HeartOutlined /> },
               { label: 'Stars', key: 'stars', icon: <StarOutlined /> },
+              ...(getUserRole()==='admin'
+                ? [{ label: 'Admin', key: 'admin', icon: <DashboardOutlined /> }]
+                : []),
               { label: 'Exit', key: 'exit', icon: <LogoutOutlined /> },
             ],
           },

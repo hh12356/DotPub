@@ -11,6 +11,7 @@ import Likes from "@/pages/User/Likes"
 import Stars from "@/pages/User/Stars"
 import Profile from "@/pages/User/Profile"
 import UserArt from "@/pages/User/UserArt"
+import Admin from "@/pages/Admin"
 
 //配置路由实例
 const router = createBrowserRouter([
@@ -66,6 +67,10 @@ const router = createBrowserRouter([
             {
                 path:'/userart',
                 element:<UserArt/>
+            },
+            {
+                path:'/admin',
+                element:<Admin/>
             },
         ]
     },

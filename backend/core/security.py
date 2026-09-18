@@ -1,3 +1,4 @@
+from typing import Annotated
 
 from core.setting import SECRET_KEY
 import jwt
@@ -101,7 +102,13 @@ async def is_banned(user_id: int) -> bool:
 async def is_muted(user_id: int) -> bool:
     return await UserAccount.filter(user_id=user_id, is_muted=True).exists()
 
-
+async def verify_admin(token_data:Annotated[dict,Depends(verify_token)]):
+    if not await is_admin(token_data["user_id"]):
+        raise HTTPException(
+            status_code=403,
+            detail={'msg':"权限不足"}
+        )
+    return token_data
 
 
 
