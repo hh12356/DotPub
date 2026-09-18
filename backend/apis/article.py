@@ -15,6 +15,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, HTTPException, Query
 from tortoise.expressions import RawSQL
 import re
+from html import unescape
 
 article_api = APIRouter(prefix="/api")
 
@@ -107,10 +108,11 @@ async def delete_article(art_id,token_data:Annotated[dict,Depends(verify_token)]
     return {"code": 200, "msg": "删除成功"}
 
 #获取所有文章
-def first_line(html: str) -> str:
-    with_breaks = re.sub(r"</(?:p|div|li|h[1-6])>|<br\s*/?>", "\n", html or "", flags=re.I)
-    # 交给 nh3 剥标签：它是真解析器，实体（&nbsp; &amp;）也会自动解码
-    text = nh3.clean(with_breaks, tags=set())
+def first_line(raw: str) -> str:
+    with_breaks = re.sub(r"</(?:p|div|li|h[1-6])>|<br\s*/?>", "\n", raw or "", flags=re.I)
+    # nh3 负责剥标签（防 XSS），但它序列化时会把 NBSP 写回 &nbsp; 实体，
+    # 得再 unescape 一次才是真正的纯文本。strip() 会顺手去掉还原出来的 NBSP
+    text = unescape(nh3.clean(with_breaks, tags=set()))
     return next((s.strip() for s in text.split("\n") if s.strip()), "")
 
 FRESH_WINDOW = 90 * 24 * 3600
