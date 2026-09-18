@@ -13,6 +13,9 @@ from models.article import *
 from models.interaction import *
 from models.user import UserAccount
 
+# 列表页统一给纯文本摘要，和 /api/article、/api/article/search 保持一致
+from apis.article import first_line
+
 user_api = APIRouter(prefix="/api")
 
 #获取用户文章
@@ -38,6 +41,8 @@ async def get_user_art(token_data:Annotated[dict,Depends(verify_token)]):
             "data": [
                 {
                     **dict(a),
+                    # ArticleCard 按纯文本渲染，直接给 HTML 会显示出标签和 &nbsp;
+                    "art_content": first_line(a.art_content),
                     "art_author": a.art_author.user_name,
                     "like_count": a.like_count,
                     "star_count": a.star_count,
@@ -76,6 +81,8 @@ async def get_likes(token_data:Annotated[dict,Depends(verify_token)]):
             "data": [
                 {
                     **dict(a),
+                    # ArticleCard 按纯文本渲染，直接给 HTML 会显示出标签和 &nbsp;
+                    "art_content": first_line(a.art_content),
                     "art_author": a.art_author.user_name,
                     "like_count": a.like_count,
                     "star_count": a.star_count,
@@ -115,6 +122,8 @@ async def get_stars(token_data:Annotated[dict,Depends(verify_token)]):
             "data": [
                 {
                     **dict(a),
+                    # ArticleCard 按纯文本渲染，直接给 HTML 会显示出标签和 &nbsp;
+                    "art_content": first_line(a.art_content),
                     "art_author": a.art_author.user_name,
                     "like_count": a.like_count,
                     "star_count": a.star_count,
@@ -171,6 +180,8 @@ async def get_user_profile(tar_id:int,user:Annotated[dict | None , Depends(optio
                 "art":[
                     {
                         **dict(a),
+                        # ArticleCard 按纯文本渲染，直接给 HTML 会显示出标签和 &nbsp;
+                        "art_content": first_line(a.art_content),
                         "art_author": a.art_author.user_name,
                         "like_count": a.like_count,
                         "star_count": a.star_count,
