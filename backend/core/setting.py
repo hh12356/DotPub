@@ -17,6 +17,9 @@ def _load_env(path: Path = Path(__file__).resolve().parent.parent / ".env"):
 
 _load_env()
 
+DEEPSEEK_API_KEY = os.environ["DEEPSEEK_API_KEY"]
+DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
+
 # 不带默认值：环境变量缺失时在启动瞬间就崩，而不是静默用一个公开值跑起来
 SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 

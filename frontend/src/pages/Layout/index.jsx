@@ -14,6 +14,7 @@ import { getUserName, removeUserName } from '@/utils/userName';
 import { getUserRole, removeUserRole } from '@/utils/userRole';
 import './index.scss';
 import { removeToken, getUserId } from '@/utils/token';
+import ChatFloat from '@/components/ChatFloat';
 
 //路径 → 该亮哪一项
 const PATH_KEY = {
@@ -128,6 +129,7 @@ const Layout = () => {
     <div>
       <Menu onClick={onClick} selectedKeys={[current]} mode="horizontal" items={items} />
       <Outlet/>
+      <ChatFloat/>
     </div>
   )
 };
