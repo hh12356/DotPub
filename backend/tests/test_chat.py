@@ -18,13 +18,22 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from apis.chat import LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages, sse, sse_pack
+from apis.chat import (
+    LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages, merge_tool_calls, run_tool, sse, sse_pack,
+)
 
 
 def _chunk(piece=None, usage=None):
     #choices 为空 = 那一帧是只带 usage 的收尾帧
-    choices = [SimpleNamespace(delta=SimpleNamespace(content=piece))] if piece is not None else []
+    #tool_calls=None 是必须的：SDK 里它是带默认值的字段，没有工具调用时是 None 而不是缺失
+    delta = SimpleNamespace(content=piece, tool_calls=None)
+    choices = [SimpleNamespace(delta=delta)] if piece is not None else []
     return SimpleNamespace(choices=choices, usage=usage)
+
+
+#流式里一次工具调用的形状：帧2 带 id/name，帧3 起只有 index+arguments
+def _tool_delta(index=0, id=None, name=None, args=None):
+    return SimpleNamespace(index=index, id=id, function=SimpleNamespace(name=name, arguments=args))
 
 
 async def _agen(chunks):
@@ -32,8 +41,9 @@ async def _agen(chunks):
         yield c
 
 
-async def _collect(source):
-    return [frame async for frame in sse(source)]
+async def _collect(source, messages=None):
+    #sse 现在要收 messages（工具往返往里接消息）；这几条断言里没有工具调用，给空表即可
+    return [frame async for frame in sse(source, messages if messages is not None else [])]
 
 
 async def _boom():
@@ -114,6 +124,29 @@ def main():
     assert frames[-1] == 'data: [DONE]\n\n'
     assert json.loads(frames[-2][6:])['e']
     assert '半' in frames[0], '已经吐出来的字不能因为报错就丢掉'
+
+    # ---------- 工具调用拼接：id/name/arguments 分帧到达，后几帧除 arguments 外全是 None ----------
+    calls = {}
+    merge_tool_calls(calls, [_tool_delta(id='call_1', name='search_articles', args='')])
+    merge_tool_calls(calls, [_tool_delta(args='{"key')])          #name=None，不加 if 就是 += None 的 TypeError
+    merge_tool_calls(calls, [_tool_delta(args='word":"TCP"}')])
+    assert calls[0] == {'id': 'call_1', 'name': 'search_articles', 'args': '{"keyword":"TCP"}'}
+    assert json.loads(calls[0]['args']) == {'keyword': 'TCP'}, 'arguments 没拼完就当成 JSON 解了'
+
+    # ---------- 两次调用交叉到达：靠 index 分开，糊在一起就是乱码 JSON ----------
+    calls = {}
+    merge_tool_calls(calls, [
+        _tool_delta(0, id='a', name='search_articles', args=''),
+        _tool_delta(1, id='b', name='read_article', args=''),
+    ])
+    merge_tool_calls(calls, [_tool_delta(1, args='{"art_id":3}')])
+    assert len(calls) == 2, '两次调用被 setdefault 到同一个槽位了'
+    assert calls[1]['args'] == '{"art_id":3}', '第 1 片的 arguments 串到第 0 片去了'
+    assert calls[0]['name'] == 'search_articles'
+
+    # ---------- 模型给的东西一律不可信：坏 JSON、编出来的工具名 ----------
+    assert 'JSON' in asyncio.run(run_tool('search_articles', '{不是json'))
+    assert '没有名为' in asyncio.run(run_tool('delete_all_articles', '{}'))
 
     print('聊天模块自检通过')
 
