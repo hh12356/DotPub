@@ -14,6 +14,9 @@ from core.security import verify_token
 from core.setting import DEEPSEEK_API_KEY, DEEPSEEK_MODEL
 from models.article import Article
 
+import json
+from fastapi.responses import StreamingResponse
+
 client = AsyncOpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com",
@@ -30,6 +33,9 @@ SYSTEM_PROMPT = (
 #关闭DS思考模式，打开即enabled
 THINKING_OFF = {"thinking": {"type": "disabled"}}
 
+#流式模式下 usage 只挂在最后一帧，要显式索要
+STREAM_OPTS = {"stream_options": {"include_usage": True}}
+
 MAX_HISTORY = 20
 WINDOW = 3600
 LIMIT = 30
@@ -42,6 +48,31 @@ logger = logging.getLogger("uvicorn.error")
 def plain_text(raw: str) -> str:
     with_breaks = re.sub(r"</(?:p|div|li|h[1-6])>|<br\s*/?>", "\n", raw or "", flags=re.I)
     return unescape(nh3.clean(with_breaks, tags=set()))
+
+
+#把字典包装成 SSE 协议字符串
+def sse_pack(payload: dict) -> str:
+    return "data: " + json.dumps(payload, ensure_ascii=False) + "\n\n"
+
+async def sse(stream):
+    try:
+        async for chunk in stream:
+            # usage 挂在最后一帧，而那一帧的 choices 是空的——先记 usage 再过滤
+            if chunk.usage:
+                logger.info("chat usage: %s", chunk.usage)
+            if not chunk.choices:
+                continue
+
+            #取出模型本次取出的文字片段
+            piece = chunk.choices[0].delta.content
+            if piece:
+                #yield使函数执行结束后暂停，等待下一次循环
+                yield sse_pack({"t": piece})
+    except Exception:
+        logger.warning("stream broke", exc_info=True)
+        yield sse_pack({"e": "回答中断了，再问一次试试"})
+    #异步生成器函数return不能向前端输出内容
+    yield "data: [DONE]\n\n"
 
 
 #搭建提示词(json格式)
@@ -99,10 +130,11 @@ async def chat(data: ChatData, token_data: Annotated[dict, Depends(verify_token)
             title, text = article.art_title, plain_text(article.art_content)
 
     try:
-        resp = await client.chat.completions.create(
+        stream = await client.chat.completions.create(
             model=DEEPSEEK_MODEL,
             messages=build_messages(title, text, data.history, data.question),
-            extra_body=THINKING_OFF,
+            extra_body={**THINKING_OFF, **STREAM_OPTS},
+            stream=True,
         )
     #DSapi报错处理
     except APIStatusError as e:
@@ -116,7 +148,11 @@ async def chat(data: ChatData, token_data: Annotated[dict, Depends(verify_token)
         logger.warning("deepseek unreachable", exc_info=True)
         raise HTTPException(status_code=504, detail={"code": 504, "msg": "AI 响应超时，请重试"})
 
-    #本次对话消耗token
-    logger.info("chat usage: %s", resp.usage)
-
-    return {"code": 200, "msg": "成功", "data": {"answer": resp.choices[0].message.content}}
+    return StreamingResponse(
+        sse(stream),
+        #前端识别此类型后持续监听服务端推送数据
+        media_type="text/event-stream",
+        #"Cache-Control": "no-cache" 告诉前端不缓存，否则会拿到旧消息
+        #"X-Accel-Buffering": "no" 关闭Nginx响应缓冲，流式输出
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

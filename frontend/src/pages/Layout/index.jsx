@@ -49,6 +49,10 @@ const Layout = () => {
 
   //高亮不用 state 存，从 URL 现推——刷新、前进后退、直接粘地址进来都不会错
   const { pathname } = useLocation()
+
+  //当前文章id，没有就是 null（首页、搜索页等）
+  const artId = Number(pathname.match(/^\/article\/(\d+)/)?.[1]) || null
+
   const current = PATH_KEY[pathname]
     ?? (pathname.startsWith('/profile') ? 'profile'
     :   pathname.startsWith('/write')   ? 'write'
@@ -129,7 +133,8 @@ const Layout = () => {
     <div>
       <Menu onClick={onClick} selectedKeys={[current]} mode="horizontal" items={items} />
       <Outlet/>
-      <ChatFloat/>
+      {/* 换用户或换文章都重挂：对话是按 用户+文章 存的，重挂才会去读对应的那一份 */}
+      <ChatFloat key={`${getUserId()}_${artId}`} artId={artId}/>
     </div>
   )
 };

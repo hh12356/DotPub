@@ -1,18 +1,44 @@
-"""聊天模块的两个纯函数自检，直接跑：  python tests/test_chat.py
+"""聊天模块的自检，直接跑：  python tests/test_chat.py
 
 build_messages 拼错顺序不会报错：轻则前缀缓存全部落空（成本涨 50 倍），
 重则把前端伪造的 system 消息放进最高优先级位置。allow 写错则限流形同虚设。
+sse 里取 usage 和过滤空 choices 的顺序写反同样不报错——只是缓存命中率从此看不见。
 
 和 test_sanitize.py 一样用裸 assert，项目里没有 pytest。
     （assert 在 python -O 下会被去掉，别用 -O 跑这个文件）
 """
 
+import asyncio
+import json
+import logging
 import sys
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from apis.chat import LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages
+from apis.chat import LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages, sse, sse_pack
+
+
+def _chunk(piece=None, usage=None):
+    #choices 为空 = 那一帧是只带 usage 的收尾帧
+    choices = [SimpleNamespace(delta=SimpleNamespace(content=piece))] if piece is not None else []
+    return SimpleNamespace(choices=choices, usage=usage)
+
+
+async def _agen(chunks):
+    for c in chunks:
+        yield c
+
+
+async def _collect(source):
+    return [frame async for frame in sse(source)]
+
+
+async def _boom():
+    yield _chunk('半')
+    raise RuntimeError('上游断了')
 
 
 def main():
@@ -62,6 +88,32 @@ def main():
     assert all(allow(uid) for _ in range(LIMIT))
     assert allow(uid) is False
     assert allow(uid + 1) is True
+
+    # ---------- SSE 帧：正文换行必须被 JSON 吃掉，中文不能被转义 ----------
+    raw = sse_pack({'t': '第一行\n第二行'})
+    assert raw.endswith('\n\n')
+    assert raw.count('\n') == 2, '正文里的换行漏进帧里了，前端按 \\n\\n 切会错位'
+    assert '第一行' in raw, '中文被 ensure_ascii 转义了'
+
+    # ---------- 流式：空 choices 那一帧不能崩，且必须先把 usage 取出来 ----------
+    logger = logging.getLogger('uvicorn.error')
+    #直接换掉方法，绕开 logger level 和 handler——要验的只是 sse 有没有调它
+    with patch.object(logger, 'info') as log:
+        frames = asyncio.run(_collect(_agen([
+            _chunk('你'),
+            _chunk('好'),
+            _chunk(usage=SimpleNamespace(prompt_cache_hit_tokens=7)),
+        ])))
+
+    assert frames == [sse_pack({'t': '你'}), sse_pack({'t': '好'}), 'data: [DONE]\n\n']
+    assert log.called, 'usage 那一帧被空 choices 提前 continue 掉了，缓存命中率再也看不到'
+
+    # ---------- 上游半路断掉：发错误帧再正常收尾，异常不能漏出去 ----------
+    with patch.object(logger, 'warning'):   #顺带挡住 lastResort 打到 stderr 的栈
+        frames = asyncio.run(_collect(_boom()))
+    assert frames[-1] == 'data: [DONE]\n\n'
+    assert json.loads(frames[-2][6:])['e']
+    assert '半' in frames[0], '已经吐出来的字不能因为报错就丢掉'
 
     print('聊天模块自检通过')
 

@@ -1,3 +1,9 @@
+//滚动条槽位常驻。抽屉打开时 antd 给 body 加 overflow-y:hidden，滚动条一消失视口就宽 15px，
+//position:fixed 的悬浮球会跟着跳（antd 只补偿了 body 里的普通内容，补偿不到 fixed 元素）
+html {
+  scrollbar-gutter: stable;
+}
+
 .ant-form-item-explain-error {
   font-size: 12px;
   margin-left: 4px;
