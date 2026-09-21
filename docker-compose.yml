@@ -3,10 +3,10 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?backend/.env 里缺 MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?读不到这个变量：① backend/.env 里有没有这行；② 命令有没有带 --env-file ./backend/.env}
       MYSQL_DATABASE: DotPub
       MYSQL_USER: dotpub
-      MYSQL_PASSWORD: ${DB_PASSWORD:?backend/.env 里缺 DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?读不到这个变量：① backend/.env 里有没有这行；② 命令有没有带 --env-file ./backend/.env}
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -17,7 +17,7 @@ services:
       start_period: 30s
 
   backend:
-    build: ./backend
+    image: dotpub-backend:v1
     restart: unless-stopped
     env_file: ./backend/.env
     environment:
@@ -28,10 +28,11 @@ services:
         condition: service_healthy
 
   web:
-    build: ./frontend
+    image: dotpub-frontend:v1
+    entrypoint: ["nginx", "-g", "daemon off;"]
     restart: unless-stopped
     ports:
-      - "127.0.0.1:8080:80"
+      - "80:80"
     depends_on:
       - backend
 
