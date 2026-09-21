@@ -29,7 +29,7 @@ TORTOISE_ORM = {
             # 'engine': 'tortoise.backends.asyncpg',  PostgreSQL
             'engine': 'tortoise.backends.mysql',  # MySQL or Mariadb
             'credentials': {
-                'host': '127.0.0.1',
+                'host': os.environ.get("DB_HOST", "127.0.0.1"),
                 'port': 3306,
                 'user': os.environ.get("DB_USER", "root"),
                 # 和 SECRET_KEY 同样的道理：这两个值不能进仓库
