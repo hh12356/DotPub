@@ -30,7 +30,7 @@ const Login = ()=>{
 
     return (
         <div id='container'>
-            <h1 onClick={toHome}>小黑书</h1>
+            <h1 onClick={toHome}>DotPub</h1>
             <Form
             validateTrigger={'onBlur'}
             onFinish={(values)=>onFinish(values)}
