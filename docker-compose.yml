@@ -1,6 +1,6 @@
 services:
   db:
-    image: ghcr.io/hh12356/dotpub-mysql:8.4
+    image: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/mysql:8.4
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?读不到这个变量：① backend/.env 里有没有这行；② 命令有没有带 --env-file ./backend/.env}
@@ -17,7 +17,7 @@ services:
       start_period: 30s
 
   backend:
-    image: ghcr.io/hh12356/dotpub-backend:${IMAGE_TAG:-latest}
+    image: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file: ./backend/.env
     environment:
@@ -28,7 +28,7 @@ services:
         condition: service_healthy
 
   web:
-    image: ghcr.io/hh12356/dotpub-frontend:${IMAGE_TAG:-latest}
+    image: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "80:80"

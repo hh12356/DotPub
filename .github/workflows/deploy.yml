@@ -5,9 +5,10 @@ on:
     branches: [master]
 
 env:
-  BACKEND_IMAGE: ghcr.io/hh12356/dotpub-backend
-  FRONTEND_IMAGE: ghcr.io/hh12356/dotpub-frontend
-  MYSQL_IMAGE: ghcr.io/hh12356/dotpub-mysql:8.4
+  REGISTRY: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com
+  BACKEND_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-backend
+  FRONTEND_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-frontend
+  MYSQL_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/mysql:8.4
 
 jobs:
   build-and-deploy:
@@ -15,7 +16,6 @@ jobs:
 
     permissions:
       contents: read
-      packages: write
 
     steps:
       - uses: actions/checkout@v4
@@ -24,9 +24,9 @@ jobs:
 
       - uses: docker/login-action@v3
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Build and push backend
         uses: docker/build-push-action@v6
@@ -50,10 +50,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Mirror mysql:8.4 to ghcr
+      - name: Mirror mysql:8.4
         run: |
           if docker manifest inspect ${{ env.MYSQL_IMAGE }} > /dev/null 2>&1; then
-            echo "already on ghcr, skipping"
+            echo "already on registry, skipping"
           else
             echo "first time: mirroring mysql:8.4"
             docker pull mysql:8.4
@@ -70,7 +70,6 @@ jobs:
           source: "docker-compose.yml"
           target: "/opt/dotpub/"
 
-
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
@@ -80,13 +79,28 @@ jobs:
           script: |
             set -e
             cd /opt/dotpub
+
+            echo "${{ secrets.ACR_PASSWORD }}" | docker login ${{ env.REGISTRY }} -u "${{ secrets.ACR_USERNAME }}" --password-stdin
+
             export IMAGE_TAG=${{ github.sha }}
             docker compose --env-file ./backend/.env pull
             docker compose --env-file ./backend/.env up -d
-            sleep 5
+
+            WEB=$(docker compose --env-file ./backend/.env ps -q web)
+            RUNNING=$(docker inspect "$WEB" --format '{{.Config.Image}}')
+            EXPECTED="${{ env.FRONTEND_IMAGE }}:${{ github.sha }}"
+
+            if [ "$RUNNING" != "$EXPECTED" ]; then
+              echo "FAIL: web is running $RUNNING"
+              echo "      expected  $EXPECTED"
+              exit 1
+            fi
+            echo "OK: web is running the new image"
+
+            sleep 3
             if curl -fsS -o /dev/null http://127.0.0.1/; then
-              echo "deployed, homepage OK"
+              echo "OK: homepage reachable"
             else
-              echo "homepage NOT reachable after deploy"
+              echo "FAIL: homepage not reachable"
               exit 1
             fi
