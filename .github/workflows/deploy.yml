@@ -33,6 +33,8 @@ jobs:
         with:
           context: ./backend
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.BACKEND_IMAGE }}:${{ github.sha }}
             ${{ env.BACKEND_IMAGE }}:latest
@@ -44,6 +46,8 @@ jobs:
         with:
           context: ./frontend
           push: true
+          provenance: false
+          sbom: false
           tags: |
             ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
             ${{ env.FRONTEND_IMAGE }}:latest
