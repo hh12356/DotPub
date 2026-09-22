@@ -8,7 +8,6 @@ env:
   REGISTRY: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com
   BACKEND_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-backend
   FRONTEND_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/dotpub-frontend
-  MYSQL_IMAGE: crpi-8dxgsbsc57rw3rfl.cn-hangzhou.personal.cr.aliyuncs.com/dotpub/mysql:8.4
 
 jobs:
   build-and-deploy:
@@ -53,17 +52,6 @@ jobs:
             ${{ env.FRONTEND_IMAGE }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Mirror mysql:8.4
-        run: |
-          if docker manifest inspect ${{ env.MYSQL_IMAGE }} > /dev/null 2>&1; then
-            echo "already on registry, skipping"
-          else
-            echo "first time: mirroring mysql:8.4"
-            docker pull mysql:8.4
-            docker tag mysql:8.4 ${{ env.MYSQL_IMAGE }}
-            docker push ${{ env.MYSQL_IMAGE }}
-          fi
 
       - name: Sync compose file to server
         uses: appleboy/scp-action@v1

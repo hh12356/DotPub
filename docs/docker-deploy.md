@@ -117,4 +117,4 @@ docker inspect <容器> --format '{{range .Config.Env}}{{println .}}{{end}}' | c
 
 **CI/CD 已完成**——后续的自动化部署、回滚、以及那部分踩过的坑，见 [cicd.md](cicd.md)。
 
-后续补上的两处：`entrypoint` 已从 compose 挪进 `frontend/Dockerfile`（并补了 `CMD []`，否则会和基础镜像继承下来的 `CMD` 拼出重复参数）；三个镜像现在由 CI 构建后推到阿里云 ACR，`mysql:8.4` 同样走 ACR（服务器拉不动 Docker Hub）。
+后续补上的两处：`entrypoint` 已从 compose 挪进 `frontend/Dockerfile`（并补了 `CMD []`，否则会和基础镜像继承下来的 `CMD` 拼出重复参数）；backend / frontend 两个镜像由 CI 构建后推到阿里云 ACR，`mysql:8.4` 因为服务器拉不动 Docker Hub 也必须在 ACR 上有一份，但它是**手工推一次**的。

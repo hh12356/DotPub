@@ -119,6 +119,7 @@ RUNNING=$(docker inspect "$WEB" --format '{{.Config.Image}}')
 | Actions 绿了但容器没更新 | 健康检查只 curl 首页，测不出"什么都没发生" |
 | `repository name must be lowercase` | ghcr 强制小写，`DotPub` 这种混写会被拒 |
 | ACR 在服务器所在地域找不到 | 个人版只开放部分地域，换杭州/上海即可 |
+| 部署卡在 `Mirror mysql` 十几分钟 | **不一定是卡死**——`docker push` 在非 TTY 下缓冲输出，跨境传 500MB 期间日志就是空白的 |
 
 ---
 
@@ -151,9 +152,18 @@ docker compose --env-file ./backend/.env up -d
 
 ## 不在 CI/CD 覆盖范围内的
 
-这两个是**手工维护**的，改了要自己同步到服务器：
+这三个是**手工维护**的，改了要自己同步：
 
 - **`backend/.env`** —— 密钥，永远不进仓库。**服务器上唯一不可再生的文件**，改之前先备份。
 - **`backup.sh` + crontab** —— 备份脚本。它没做进 scp 同步，因为 scp 不保留可执行位，覆盖一次就可能让 cron 静默失效。改了就手动传一次并 `chmod +x`。
+- **`mysql:8.4` 推到 ACR** —— 服务器拉不动 Docker Hub，所以这个基础镜像必须有一份在国内 registry 上。**推一次就永远在，所以是一次性操作，手工做**：
+
+  ```bash
+  docker pull --platform linux/amd64 mysql:8.4
+  docker tag mysql:8.4 crpi-.../dotpub/mysql:8.4
+  docker push crpi-.../dotpub/mysql:8.4
+  ```
+
+  它一度被写在 workflow 里，用 `docker manifest inspect` 判断"推过没"。**那一步是错的**：一次性操作放进流水线，等于每次部署都付一遍它的成本，而守卫本身对私有 ACR 又不可靠。判断标准不是"能不能自动化"，是"**这件事会发生几次**"——一次的事就该手工做。
 
 另一件不属于 CI/CD、但容易被忘的事：**数据库备份和数据库在同一块盘上**。只防误删误改，不防磁盘故障。
