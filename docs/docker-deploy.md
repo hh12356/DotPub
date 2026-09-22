@@ -111,13 +111,10 @@ docker inspect <容器> --format '{{range .Config.Env}}{{println .}}{{end}}' | c
 
 ---
 
-## 现状与待办
+## 现状
 
-`http://47.122.126.63` 跑在容器上，重启验证通过。
+`http://47.122.126.63` 跑在容器上，重启服务器验证过整栈自启。
 
-**下一步 CI/CD：**
+**CI/CD 已完成**——后续的自动化部署、回滚、以及那部分踩过的坑，见 [cicd.md](cicd.md)。
 
-1. `/opt/dotpub` 改成 git 克隆（现在是 `git archive` 的产物，有 `.gitignore` 没有 `.git/`）。改之前先把 `backend/.env` 备份到克隆目录之外——它是服务器上唯一不可再生的文件。
-2. 建阿里云 ACR 实例，`mysql:8.4` 一并重打标推入。
-3. 把 `entrypoint: ["nginx", "-g", "daemon off;"]` 从 compose 挪进 `frontend/Dockerfile`，顺手换 `nginx:stable`（Debian 版不调 `apk`，那个卡死问题从根上消失）。
-4. GitHub Secrets + `.github/workflows/deploy.yml`。
+后续补上的两处：`entrypoint` 已从 compose 挪进 `frontend/Dockerfile`（并补了 `CMD []`，否则会和基础镜像继承下来的 `CMD` 拼出重复参数）；三个镜像现在由 CI 构建后推到阿里云 ACR，`mysql:8.4` 同样走 ACR（服务器拉不动 Docker Hub）。
