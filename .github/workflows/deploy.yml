@@ -61,6 +61,16 @@ jobs:
             docker push ${{ env.MYSQL_IMAGE }}
           fi
 
+      - name: Sync compose file to server
+        uses: appleboy/scp-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "docker-compose.yml"
+          target: "/opt/dotpub/"
+
+
       - name: Deploy to server
         uses: appleboy/ssh-action@v1
         with:
@@ -70,7 +80,6 @@ jobs:
           script: |
             set -e
             cd /opt/dotpub
-            git pull
             export IMAGE_TAG=${{ github.sha }}
             docker compose --env-file ./backend/.env pull
             docker compose --env-file ./backend/.env up -d
