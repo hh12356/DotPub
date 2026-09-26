@@ -2,7 +2,7 @@
 
 一个技术文章社区,我们称其为小黑书
 
-🔗 在线体验：http://47.122.126.63/
+🔗 在线体验：http://47.122.126.63/ (已下线)
 
 ## 技术栈
 
@@ -39,24 +39,32 @@
 ```
 DotPub/
 ├── backend/
-│   ├── main.py            # FastAPI 入口，挂载 5 个路由 + 注册 Tortoise
-│   ├── apis/              # login · sign_up · article · user · admin
+│   ├── main.py            # FastAPI 入口，挂载 6 个路由 + 注册 Tortoise
+│   ├── apis/              # login · sign_up · article · user · admin · chat
 │   ├── core/
 │   │   ├── security.py    # JWT、argon2、verify_token / verify_admin / can_manage
 │   │   └── setting.py     # .env 载入 + TORTOISE_ORM 配置
 │   ├── models/            # UserAccount · Article · Comment · ArticleLike · ArticleStar
 │   ├── migrations/        # Aerich 迁移 0–11
 │   ├── seeds/             # 12 篇种子文章正文（网络前端 / 后端数据库 / 安全运维）
-│   ├── tests/             # test_sanitize.py · test_stats.py（裸 assert，无框架）
+│   ├── tests/             # test_sanitize.py · test_stats.py · test_chat.py（裸 assert，无框架）
 │   └── seed_articles.py   # 种子数据导入脚本（--clean 可重跑）
 └── frontend/
     └── src/
+        ├── router/        # 路由表 + RequireAdmin（管理页守卫）
         ├── apis/          # 按模块封装的接口
         ├── pages/         # Home · Article · Write · Search · Login · Signup · Layout · Admin · User/*
+        ├── components/    # ArticleCard · ChatFloat（AI 助手悬浮窗）
         ├── hooks/         # useArticles：分页累积 + 丢弃过期响应
         ├── store/         # Redux user 切片（sessionStorage 的镜像）
-        └── utils/         # request（axios 封装 + 401 拦截跳登录）· token
+        └── utils/         # request（axios 封装 + 401 拦截跳登录）· token · userName / userRole
 ```
+
+## 部署与 CI/CD
+
+三个容器（`web` nginx + `backend` uvicorn + `db` mysql）由根目录 `docker-compose.yml` 编排，宿主机只暴露 80。**`git push` 即部署**：GitHub Actions 构建两个镜像推阿里云 ACR，服务器只做 `pull && up -d`，不构建、不访问 GitHub；镜像 tag 用 git commit sha，线上跑的是哪一版 `docker inspect` 一看就知道，回滚就是把 tag 指回上一个 commit。
+
+细节见 [`docs/docker-deploy.md`](docs/docker-deploy.md) · [`docs/cicd.md`](docs/cicd.md)。
 
 ## 值得一提的几处
 
