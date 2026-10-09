@@ -18,3 +18,5 @@ nh3==0.3.7
 cryptography==50.0.1
 
 openai==3.16.2
+
+redis==8.1.0

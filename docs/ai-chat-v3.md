@@ -147,7 +147,7 @@ curl -s https://api.deepseek.com/chat/completions \
 
 ### 步骤 1：`backend/apis/chat.py`
 
-改动全在文件下半部分。上面的 `client` / `SYSTEM_PROMPT` / `plain_text` / `sse_pack` / `build_messages` / `allow` / `ChatData` 全留着，`build_messages` 尤其**一行都别动**（上面那个 ⚠️）。
+改动全在文件下半部分。上面的 `client` / `SYSTEM_PROMPT` / `plain_text` / `sse_pack` / `build_messages` / `allow` / `ChatData` 全留着（`allow` 后来换成 Redis + Lua 版了，见 ai-chat-v1.md 的 3d），`build_messages` 尤其**一行都别动**（上面那个 ⚠️）。
 
 **1a. `SYSTEM_PROMPT` 加一句，`TOOLS` 加成模块级常量**
 
@@ -350,7 +350,7 @@ async def run_tool(name: str, args_json: str) -> str:
 
 代价说清楚：**第二轮之后的调用发生在响应头发出之后**，那时候上游再报 402/429 就只能是流里的一帧了。这是循环本身带来的，躲不掉。**但对用户是一样的**——前端 `!res.ok` 和 `msg.e` 走的是同一个 `catch`，红字一样、撤回一样。丢的只是 Nginx access log 里那个状态码。
 
-`allow()` 和 `allow` 那个 429 **还在外面，不受影响**。顺带注意：**一次提问最多烧 3 次模型调用**，但限流只记 1 次。一小时 30 问 ≈ 最多 90 次调用。量级没问题，知道就行。
+**`allow()` 那个 429 还在外面**，不受这层循环影响。（限流后来改成 Redis + Lua 版、`allow` 变 async 了，调用点现在写 `await allow(user_id)`——详见 ai-chat-v1.md 的 3d。）顺带注意：**一次提问最多烧 3 次模型调用**，但限流只记 1 次。一小时 30 问 ≈ 最多 90 次调用。量级没问题，知道就行。
 
 **1f. import 区补一行**
 

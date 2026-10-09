@@ -22,6 +22,7 @@ services:
     env_file: ./backend/.env
     environment:
       DB_HOST: db
+      REDIS_HOST: redis
       DB_USER: dotpub
     depends_on:
       db:

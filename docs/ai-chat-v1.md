@@ -95,9 +95,12 @@ cd backend && pip install openai==3.16.2
 ```python
 DEEPSEEK_API_KEY = os.environ["DEEPSEEK_API_KEY"]
 DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
+
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = 6379
 ```
 
-不带默认值 = 启动瞬间就崩，而不是跑起来后每个请求都 500。模型名给默认值，因为换模型不该动部署。
+不带默认值 = 启动瞬间就崩，而不是跑起来后每个请求都 500。模型名给默认值，因为换模型不该动部署。`REDIS_HOST` 给默认值则是反过来的道理：本地跑不需要配任何东西，容器里由 compose 注入 `redis`。
 
 同步更新 `backend/.env.example`（现在只有两个 key），并在本地 `backend/.env` 里填上真 key。
 
@@ -107,10 +110,11 @@ DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 
 ```
 ① import 区
-     标准库：logging、os、re、time、collections.deque、html.unescape、typing.Annotated
+     标准库：logging、os、re、uuid、html.unescape、typing.Annotated
      第三方：nh3、openai 的 AsyncOpenAI / APIStatusError / APIConnectionError / APITimeoutError
+             redis 的 asyncio / exceptions.RedisError
      框架：fastapi 的 APIRouter / HTTPException / Depends、pydantic 的 BaseModel / Field
-     项目内：core.setting 的 DEEPSEEK_API_KEY / DEEPSEEK_MODEL
+     项目内：core.setting 的 DEEPSEEK_API_KEY / DEEPSEEK_MODEL / REDIS_HOST / REDIS_PORT
              core.security 的 verify_token
              models.article 的 Article
 
@@ -118,13 +122,14 @@ DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
      client = AsyncOpenAI(...)          ← 3a
      SYSTEM_PROMPT / MAX_HISTORY        ← 3c
      WINDOW / LIMIT                     ← 3d
+     r = redis.asyncio.Redis(...)       ← 3d
      logger                             ← 3g
 
 ③ 纯函数区
      def plain_text(html) -> str        ← 3b
      def build_messages(...) -> list    ← 3c   ← 你卡在这，它在这
-     _hits = {}                         ← 3d
-     def allow(user_id) -> bool         ← 3d
+     RATE_LIMIT_LUA                     ← 3d
+     async def allow(user_id) -> bool   ← 3d
 
 ④ 请求体模型
      class ChatData(BaseModel)          ← 3e
@@ -191,18 +196,56 @@ messages += [m for m in history[-MAX_HISTORY:] if m.get("role") in ("user", "ass
 
 （`question` 同理，已经是用户内容，安全；但别让它伪装成别的角色——你在后端拼的时候写死 `"role": "user"`，而不是信前端传的 role。）
 
-**3d. 限流：内存滑动窗口**
+**3d. 限流：Redis + Lua 滑动窗口**
 
 ```python
 WINDOW, LIMIT = 3600, 30
-_hits: dict[int, deque] = {}
+
+r = redis.asyncio.Redis(
+    host=REDIS_HOST, port=REDIS_PORT, db=0,
+    protocol=2, decode_responses=True, max_connections=50,
+)
+
+RATE_LIMIT_LUA = """
+local now = tonumber(redis.call('TIME')[1])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - tonumber(ARGV[2]))
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[3]) then
+    return 0
+end
+redis.call('ZADD', KEYS[1], now, ARGV[1])
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+return 1
+"""
+
+async def allow(user_id: int) -> bool:
+    key = f"chat:rate:{user_id}"
+    try:
+        allowed = await r.eval(RATE_LIMIT_LUA, 1, key, uuid.uuid4().hex, WINDOW, LIMIT)
+    except RedisError:
+        logger.warning("rate limit unavailable", exc_info=True)
+        return False
+    return allowed == 1
 ```
 
-一小时 30 条，`deque` 存时间戳，进来先弹掉窗口外的。
+一小时 30 条。key 是 `chat:rate:<user_id>`——**每个用户一个 key**，不是全局一个（全局一个就变成"全站一小时 30 次"，那是另一种限流）。ZSET 的 score 存时间戳，member 用 `uuid4().hex`：**member 必须唯一**，`ZADD key now now`（score 和 member 都是同一个时间戳）在同一秒里会互相覆盖，少记一条 = 悄悄多放一次。
 
-**为什么不上 Redis**：成本不是风险（10 轮对话约 ¥0.02），风险是**公网端点被人写脚本打满**。内存方案能挡住脚本，代价是——
+**这一版替换掉了最初的内存方案**，而当初文档里写的是"为什么不上 Redis"——那个判断是错的，原因也不是成本：
 
-> ⚠️ **systemd 里跑的是 `--workers 2`**，两个进程各有各的 dict，实际上限是 60 而不是 30。对"挡住脚本"这个目标够用，对"精确计费"不够。真需要精确再上 Redis 或数据库表（届时照 `models/interaction.py` 的 `unique_together` + `IntegrityError` 套路建表）。另外这个 dict 只增不减，长期跑会缓慢涨内存——单机作品集站可以忽略。
+> ⚠️ **`--workers 2` = 两个进程各有一份 `_hits`，实际限额是 60 不是 30。** 当时的结论是"挡住脚本够用"，但限流的价值恰恰在于**它是确定的**：第 31 次一定被拒。一个在 30~60 之间随机放水的限流器，测不出来、说不清楚、也算不了数。
+>
+> 教训是通用的：**模块级的可变状态 + 多进程 = 计数劈成两半**。凡是"必须全局唯一"的状态（限流计数）就不能留在进程里；而"每进程一份才对"的东西（OpenAI client、Redis 连接池）留着没问题。区分"状态"和"资源"就能判断。
+
+**四条命令必须一次往返做完。** 分开 `await` 的话每个 `await` 都是让出事件循环的点：两个并发请求会同时读到 `ZCARD=29`，双双放行。Redis 单线程只保证**单条命令**原子，不保证**多条命令之间**不被打断。Lua 脚本在 Redis 里算"一条命令"，执行期间不会插进别的客户端——原子性就是这么来的，没有锁、没有事务、没有重试。
+
+几个只能靠踩学会的点：
+
+- **`TIME` 写在任何写命令之前。** 老版本 Redis 不允许"非确定性命令"后面跟写命令，放第一行永远安全。别用 `time.monotonic()`——那是"开机以来的秒数"，两个进程、两台机器之间没有可比性。用 Redis 自己的钟还顺带免掉了应用与 Redis 之间的时钟偏差。
+- **`return 0/1`，不是 `false`。** Lua 的 `false` 到了 Python 是 `None`，`true` 是 `1`，都不是布尔。
+- **连接池满了不排队，直接抛 `MaxConnectionsError`。** 所以 `max_connections` 要盖过"同时在飞的 `allow()` 数量"，不是"平时的流量"。
+- **`protocol=2`**：redis-py 8 默认先发 RESP3 的 `HELLO 3` 握手，Redis 5 不认（本地那个 Windows 版就是 5.0），必须退回 RESP2。Redis 7 两种都吃。
+- **`EXPIRE` 才是真正修掉"dict 只增不减"的那一行**——一小时没再聊，`chat:rate:<uid>` 整个消失。
+
+**Redis 挂了就拒掉（fail closed）。** 这是有意的：跟上面第 168 行那条结论一致，要护的是公网端点，宁可拒也不放过去裸奔打 DeepSeek。代价是 Redis 抖一下全员聊不了天，接受。想改成 fail open 就是 `return True` 一行的事。
 
 **3e. 路由**
 
@@ -270,7 +313,8 @@ logger.info("chat usage: %s", resp.usage)
 照 `tests/test_stats.py` 的形状：`sys.path.insert` 修路径 → 裸 `assert` → `def main()` → `if __name__ == "__main__": main()`。测两个纯函数就够：
 
 - `build_messages`：顺序是 system 常量 → 文章 → 历史 → 本轮问题；历史超长时从前面裁；没有 `art_id` 时那条文章 system 不出现
-- `allow`：同一用户连打 30 次通过，第 31 次拒绝
+- `allow`：同一用户连打 30 次通过，第 31 次拒绝。三条注意——① 它现在是 async，要 `asyncio.run` 包一层；② **必须写成列表推导** `all([await allow(uid) for _ in range(LIMIT)])`，写成生成器表达式会变成 async generator，`all()` 直接报错；③ 漏掉 `await` 更糟：协程对象都是真值，断言会**假通过**，什么都没验还显示绿
+- `allow` 要连 Redis，跑之前得有一个可达的；开头先 `delete` 掉上轮的 key，否则跑第二遍就挂
 
 不用 mock 时间（测等待窗口要等一小时，不值），也不用 pytest（项目没装）。
 

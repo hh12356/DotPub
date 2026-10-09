@@ -23,6 +23,9 @@ DEEPSEEK_MODEL = os.environ.get("DEEPSEEK_MODEL", "deepseek-flash")
 # 不带默认值：环境变量缺失时在启动瞬间就崩，而不是静默用一个公开值跑起来
 SECRET_KEY = os.environ["JWT_SECRET_KEY"]
 
+REDIS_HOST = os.environ.get("REDIS_HOST", "127.0.0.1")
+REDIS_PORT = 6379
+
 TORTOISE_ORM = {
     'connections': {
         'default': {

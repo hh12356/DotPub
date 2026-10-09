@@ -1,7 +1,6 @@
 import logging
 import re
-import time
-from collections import deque
+import uuid
 from html import unescape
 from typing import Annotated
 
@@ -11,16 +10,32 @@ from openai import APIConnectionError, APIStatusError, APITimeoutError, AsyncOpe
 from pydantic import BaseModel, Field
 
 from core.security import verify_token
-from core.setting import DEEPSEEK_API_KEY, DEEPSEEK_MODEL
+from core.setting import DEEPSEEK_API_KEY, DEEPSEEK_MODEL, REDIS_HOST, REDIS_PORT
 from models.article import Article
 
 import json
 from fastapi.responses import StreamingResponse
 
+import redis
+from redis.exceptions import RedisError
+
 client = AsyncOpenAI(
     api_key=DEEPSEEK_API_KEY,
     base_url="https://api.deepseek.com",
     timeout=30.0,
+)
+
+#异步redis
+r = redis.asyncio.Redis(
+    host=REDIS_HOST,
+    port=REDIS_PORT,
+    db=0,
+    #redis-py 8 默认发 RESP3 的 HELLO 握手，5.0 的服务器不认，必须退回 RESP2
+    protocol=2,
+    decode_responses=True,
+    #池子满了不会排队，直接抛 MaxConnectionsError。所以这个数要盖过"同时有多少个
+    #allow() 在飞"，而不是"平时有多少流量"。2 个 worker 各有一份，互不影响
+    max_connections=50
 )
 
 SYSTEM_PROMPT = (
@@ -83,12 +98,13 @@ def plain_text(raw: str) -> str:
 
 #刻意不 await：路由里 await 它，第一轮的报错就还是 503/504
 def new_stream(messages, last=False):
-    #最后一轮 tool_choice 设 none，逼它出文字；tools 照传，前缀才不破
     return client.chat.completions.create(
         model=DEEPSEEK_MODEL,
         messages=messages,
         tools=TOOLS,
+        #最后一轮 tool_choice 设 none，逼它出文字；tools 照传，前缀才不破
         tool_choice="none" if last else "auto",
+        #关闭思考模式并提供流式相关参数
         extra_body={**THINKING_OFF, **STREAM_OPTS},
         stream=True,
     )
@@ -157,13 +173,16 @@ async def sse(stream, messages):
                 #记录token消耗及退出
                 if chunk.usage:
                     logger.info("chat usage: %s", chunk.usage)
+                # .choices是候选回答 
                 if not chunk.choices:
                     continue
 
+                # .delta是本轮增加部分
                 d = chunk.choices[0].delta
                 merge_tool_calls(calls, d.tool_calls)
                 if d.content:
                     yield sse_pack({"t": d.content})
+            #本轮生成完成，进入工具调用
 
             #模型没要工具，这一轮就是最终答案
             if not calls or i == MAX_ROUNDS - 1:
@@ -193,36 +212,44 @@ async def sse(stream, messages):
     yield "data: [DONE]\n\n"
 
 
-#搭建提示词(json格式)
+#搭建初始提示词(json格式)
 def build_messages(title: str, text: str, history: list, question: str) -> list:
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if text:
         messages.append({"role": "system", "content": f"用户正在阅读《{title}》：\n\n{text}"})
     #MAX_HISTORY限制上下文长度，读取历史对话
     for m in (history or [])[-MAX_HISTORY:]:
+        #进行一次过滤再append
         if isinstance(m, dict) and m.get("role") in ("user", "assistant") and isinstance(m.get("content"), str):
             messages.append({"role": m["role"], "content": m["content"]})
     #本轮对话
     messages.append({"role": "user", "content": question})
     return messages
 
+#包含过期清除
+#KEYS[1]=chat:rate:<uid>  ARGV[1]=member  ARGV[2]=窗口秒数  ARGV[3]=上限
+RATE_LIMIT_LUA = """
+local now = tonumber(redis.call('TIME')[1])
+redis.call('ZREMRANGEBYSCORE', KEYS[1], 0, now - tonumber(ARGV[2]))
+if redis.call('ZCARD', KEYS[1]) >= tonumber(ARGV[3]) then
+    return 0
+end
+redis.call('ZADD', KEYS[1], now, ARGV[1])
+redis.call('EXPIRE', KEYS[1], ARGV[2])
+return 1
+"""
 
-_hits: dict[int, deque] = {}
 
-
-def allow(user_id: int) -> bool:
-    #单调时钟的时间，仅用于计算时间差
-    now = time.monotonic()
-    q = _hits.setdefault(user_id, deque())
-    #删掉超过1小时的记录
-    while q and now - q[0] > WINDOW:
-        q.popleft()
-    #限制对话次数
-    if len(q) >= LIMIT:
+async def allow(user_id: int) -> bool:
+    key = f"chat:rate:{user_id}"
+    try:
+        allowed = await r.eval(RATE_LIMIT_LUA, 1, key, uuid.uuid4().hex, WINDOW, LIMIT)
+    except RedisError:
+        #Redis 连不上、或同时飞的请求超过连接池上限都落到这里。宁可拒掉，
+        #也不放行——否则 Redis 一挂，限流就等于没有，公网端点直接裸奔
+        logger.warning("rate limit unavailable", exc_info=True)
         return False
-    #记录当前时间
-    q.append(now)
-    return True
+    return allowed == 1
 
 
 class ChatData(BaseModel):
@@ -237,7 +264,8 @@ chat_api = APIRouter(prefix="/api")
 @chat_api.post("/chat")
 async def chat(data: ChatData, token_data: Annotated[dict, Depends(verify_token)]):
     user_id = token_data["user_id"]
-    if not allow(user_id):
+    #对话是否超过限额
+    if not await allow(user_id):
         raise HTTPException(status_code=429, detail={"code": 429, "msg": "聊得太快了，休息一下"})
 
     title = ""

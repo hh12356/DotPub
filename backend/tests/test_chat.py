@@ -19,7 +19,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from apis.chat import (
-    LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages, merge_tool_calls, run_tool, sse, sse_pack,
+    LIMIT, MAX_HISTORY, SYSTEM_PROMPT, allow, build_messages, merge_tool_calls, r, run_tool, sse, sse_pack,
 )
 
 
@@ -49,6 +49,18 @@ async def _collect(source, messages=None):
 async def _boom():
     yield _chunk('半')
     raise RuntimeError('上游断了')
+
+
+async def _rate_limit_check():
+    uid = 999999
+    #计数落在 Redis 里会跨次留存，先清掉，重复跑才不会第二次就挂
+    await r.delete(f'chat:rate:{uid}', f'chat:rate:{uid + 1}')
+    #必须是列表推导：生成器表达式里带 await 会变成 async generator，all() 吃不了
+    assert all([await allow(uid) for _ in range(LIMIT)])
+    assert (await allow(uid)) is False
+    assert (await allow(uid + 1)) is True
+    #EXPIRE 真的设上了，key 不会像 _hits 那样永远留着
+    assert await r.ttl(f'chat:rate:{uid}') > 0
 
 
 def main():
@@ -94,10 +106,7 @@ def main():
     assert all(m['role'] != 'system' for m in msgs[1:])
 
     # ---------- 限流：第 31 次挡掉，且不误伤别人 ----------
-    uid = 999999
-    assert all(allow(uid) for _ in range(LIMIT))
-    assert allow(uid) is False
-    assert allow(uid + 1) is True
+    asyncio.run(_rate_limit_check())
 
     # ---------- SSE 帧：正文换行必须被 JSON 吃掉，中文不能被转义 ----------
     raw = sse_pack({'t': '第一行\n第二行'})

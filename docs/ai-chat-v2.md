@@ -108,7 +108,7 @@ from fastapi.responses import StreamingResponse
 async def chat(data: ChatData, token_data: Annotated[dict, Depends(verify_token)]):
     # ↓↓↓ 这一段全部在返回之前跑完，这里的异常还能变成状态码 ↓↓↓
     user_id = token_data["user_id"]
-    if not allow(user_id):
+    if not await allow(user_id):   # allow 后来改成 Redis 版才变 async，见 ai-chat-v1.md 的 3d
         raise HTTPException(status_code=429, detail={"code": 429, "msg": "聊得太快了，休息一下"})
 
     title = ""
